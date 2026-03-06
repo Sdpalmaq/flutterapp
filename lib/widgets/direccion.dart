@@ -30,7 +30,7 @@ class Direccion extends StatelessWidget {
             initialValue: model.zCantonTrabCliente,
           ),
         ]),
-        // Fila 2 - Calle y Número
+        // Fila 2 - Calle, Número e Intersección
         ResponsiveRow(children: [
           _buildTextField(
             label: 'Calle Principal', icon: Icons.signpost,
@@ -42,8 +42,13 @@ class Direccion extends StatelessWidget {
             onSaved: (v) => model.zNumeroTrabCliente = v,
             initialValue: model.zNumeroTrabCliente,
           ),
+          _buildTextField(
+            label: 'Intersección', icon: Icons.add_road,
+            onSaved: (v) => model.zInterseccionDomicilio = v,
+            initialValue: model.zInterseccionDomicilio,
+          ),
         ]),
-        // Fila 3 - Teléfono (solo ocupa mitad del ancho en desktop)
+        // Fila 3 - Teléfono
         LayoutBuilder(
           builder: (context, constraints) {
             if (constraints.maxWidth < 600) {

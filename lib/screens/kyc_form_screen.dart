@@ -532,7 +532,7 @@ class _KycFormScreenState extends State<KycFormScreen> {
       final registroId = _model.idMutable ?? _model.id;
 
       if (registroId != null) {
-        final ok = await _service.actualizarKYC(registroId, _model.toJson());
+        final ok = await _service.actualizarKYC(registroId, _model.toJsonUpdate());
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(ok
@@ -542,7 +542,7 @@ class _KycFormScreenState extends State<KycFormScreen> {
           ),
         );
       } else {
-        final idCreado = await _service.crearKYCConId(_model.toJson());
+        final idCreado = await _service.crearKYCConId(_model.toJsonCreate());
         if (idCreado != null) {
           setState(() => _model.idMutable = idCreado);
           ScaffoldMessenger.of(context).showSnackBar(

@@ -12,6 +12,10 @@ class PersonaTransaccion extends StatefulWidget {
 }
 
 class _PersonaTransaccionState extends State<PersonaTransaccion> {
+
+  bool get _esRegistroExistente =>
+      widget.model.idMutable != null || widget.model.id != null;
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -22,17 +26,23 @@ class _PersonaTransaccionState extends State<PersonaTransaccion> {
         const SizedBox(height: 16),
         ResponsiveRow(children: [
           _buildTextField(
-            label: 'Nombres y Apellidos', icon: Icons.person, required: true,
+            label: 'Nombres y Apellidos',
+            icon: Icons.person,
+            required: true,
             onSaved: (v) => widget.model.zNombrePersonaTransaccion = v,
             initialValue: widget.model.zNombrePersonaTransaccion,
           ),
-          _buildTextField(
-            label: 'No. Documento', icon: Icons.badge, required: true,
+          // ── Cédula: bloqueada si el registro ya existe ──
+          _buildLockedField(
+            label: 'No. Documento',
+            icon: Icons.badge,
+            required: true,
+            value: widget.model.zDocumentoPersonaTransa ?? '',
+            locked: _esRegistroExistente,
+            tooltipMsg: 'El documento de identidad no puede modificarse',
             onSaved: (v) => widget.model.zDocumentoPersonaTransa = v,
-            initialValue: widget.model.zDocumentoPersonaTransa,
           ),
         ]),
-        // Vinculación ocupa solo mitad en desktop
         LayoutBuilder(builder: (context, constraints) {
           if (constraints.maxWidth < 600) {
             return _buildTextField(
@@ -63,13 +73,16 @@ class _PersonaTransaccionState extends State<PersonaTransaccion> {
         ResponsiveRow(children: [
           _buildTextField(
             label: 'Bien / Servicio a adquirir',
-            icon: Icons.directions_car, required: true,
+            icon: Icons.directions_car,
+            required: true,
             onSaved: (v) => widget.model.zBienTransaccion = v,
             initialValue: widget.model.zBienTransaccion,
           ),
           _buildTextField(
-            label: 'PVP', icon: Icons.attach_money,
-            required: true, keyboardType: TextInputType.number,
+            label: 'PVP',
+            icon: Icons.attach_money,
+            required: true,
+            keyboardType: TextInputType.number,
             onSaved: (v) =>
                 widget.model.zPvpTransaccion = double.tryParse(v ?? '0'),
             initialValue: widget.model.zPvpTransaccion?.toString(),
@@ -83,12 +96,10 @@ class _PersonaTransaccionState extends State<PersonaTransaccion> {
               prefixIcon: Icon(Icons.payment, color: Colors.grey[600]),
               filled: true,
               fillColor: Colors.grey[50],
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: WebStyles.cyanAccent, width: 2),
+                borderSide: const BorderSide(color: WebStyles.cyanAccent, width: 2),
               ),
             ),
             items: const [
@@ -104,12 +115,56 @@ class _PersonaTransaccionState extends State<PersonaTransaccion> {
           ),
           _buildTextField(
             label: 'Origen de Fondos',
-            icon: Icons.account_balance_wallet, required: true,
+            icon: Icons.account_balance_wallet,
+            required: true,
             onSaved: (v) => widget.model.zOrigenFondos = v,
             initialValue: widget.model.zOrigenFondos,
           ),
         ]),
       ],
+    );
+  }
+
+  // Campo que se bloquea (readOnly + candado) cuando locked=true
+  Widget _buildLockedField({
+    required String label,
+    required IconData icon,
+    required String value,
+    required bool locked,
+    required String tooltipMsg,
+    bool required = false,
+    void Function(String?)? onSaved,
+  }) {
+    final controller = TextEditingController(text: value);
+    return TextFormField(
+      controller: controller,
+      readOnly: locked,
+      style: TextStyle(color: locked ? Colors.grey[600] : Colors.black),
+      decoration: InputDecoration(
+        labelText: required ? '$label *' : label,
+        prefixIcon: Icon(icon, color: Colors.grey[600]),
+        filled: true,
+        fillColor: locked ? Colors.grey[100] : Colors.grey[50],
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(
+            color: locked ? Colors.grey : WebStyles.cyanAccent,
+            width: 2,
+          ),
+        ),
+        suffixIcon: locked
+            ? Tooltip(
+                message: tooltipMsg,
+                child: Icon(Icons.lock, color: Colors.grey[400]),
+              )
+            : null,
+      ),
+      validator: required
+          ? (v) => (v == null || v.isEmpty) ? 'Campo requerido' : null
+          : null,
+      onChanged: locked ? null : onSaved,
+      onSaved: locked ? null : onSaved,
     );
   }
 

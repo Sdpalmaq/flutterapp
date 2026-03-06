@@ -355,9 +355,10 @@ class _TablasHijasState extends State<TablasHijas>
               final ok = await _service.guardarAccionista(
                   model, widget.personalDataId!);
               if (ok) {
+                final messenger = ScaffoldMessenger.of(context);
                 Navigator.pop(context);
                 _cargarDatos();
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('✅ Accionista guardado'),
                     backgroundColor: Colors.green,
@@ -434,9 +435,10 @@ class _TablasHijasState extends State<TablasHijas>
               final ok =
                   await _service.guardarCliente(model, widget.personalDataId!);
               if (ok) {
+                final messenger = ScaffoldMessenger.of(context);
                 Navigator.pop(context);
                 _cargarDatos();
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('✅ Cliente guardado'),
                     backgroundColor: Colors.green,
@@ -510,9 +512,10 @@ class _TablasHijasState extends State<TablasHijas>
               final ok =
                   await _service.guardarPEP(model, widget.personalDataId!);
               if (ok) {
+                final messenger = ScaffoldMessenger.of(context);
                 Navigator.pop(context);
                 _cargarDatos();
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('✅ PEP guardado'),
                     backgroundColor: Colors.green,
@@ -698,9 +701,10 @@ class _TablasHijasState extends State<TablasHijas>
               final ok = await _service.guardarReferenciaBancaria(
                   model, widget.personalDataId!);
               if (ok) {
+                final messenger = ScaffoldMessenger.of(context);
                 Navigator.pop(context);
                 _cargarDatos();
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('✅ Referencia bancaria guardada'),
                     backgroundColor: Colors.green,

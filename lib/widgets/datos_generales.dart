@@ -16,13 +16,34 @@ class _DatosGeneralesState extends State<DatosGenerales> {
   final IdempiereService _service = IdempiereService();
   bool _buscando = false;
 
-  final _nameController = TextEditingController();
-  final _taxIdController = TextEditingController();
-  final _actividadController = TextEditingController();
-  final _correoController = TextEditingController();
-  final _agenciaController = TextEditingController();
-  final _objetoSocialController = TextEditingController();
-  final _paginaInternetController = TextEditingController();
+  late final TextEditingController _nameController;
+  late final TextEditingController _taxIdController;
+  late final TextEditingController _actividadController;
+  late final TextEditingController _correoController;
+  late final TextEditingController _agenciaController;
+  late final TextEditingController _objetoSocialController;
+  late final TextEditingController _paginaInternetController;
+
+  // true si el registro ya existe en iDempiere
+  bool get _esRegistroExistente =>
+      widget.model.idMutable != null || widget.model.id != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.model.name ?? '');
+    _taxIdController = TextEditingController(text: widget.model.taxId ?? '');
+    _actividadController =
+        TextEditingController(text: widget.model.actividadEconomica ?? '');
+    _correoController =
+        TextEditingController(text: widget.model.zCorreoCliente ?? '');
+    _agenciaController =
+        TextEditingController(text: widget.model.zAgencia ?? '');
+    _objetoSocialController =
+        TextEditingController(text: widget.model.zObjetoSocial ?? '');
+    _paginaInternetController =
+        TextEditingController(text: widget.model.zPaginaInternet ?? '');
+  }
 
   @override
   void dispose() {
@@ -48,6 +69,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           widget.model.name = kyc.name;
           widget.model.taxId = kyc.taxId;
           widget.model.actividadEconomica = kyc.actividadEconomica;
+          widget.model.tipoActividad = kyc.tipoActividad;
           widget.model.zCorreoCliente = kyc.zCorreoCliente;
           widget.model.zAgencia = kyc.zAgencia;
           widget.model.zObjetoSocial = kyc.zObjetoSocial;
@@ -64,6 +86,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           widget.model.zCantonTrabCliente = kyc.zCantonTrabCliente;
           widget.model.zCalleTrabCliente = kyc.zCalleTrabCliente;
           widget.model.zNumeroTrabCliente = kyc.zNumeroTrabCliente;
+          widget.model.zInterseccionDomicilio = kyc.zInterseccionDomicilio;
           widget.model.zTelefonoTrabCliente = kyc.zTelefonoTrabCliente;
           widget.model.zNombrePersonaTransaccion =
               kyc.zNombrePersonaTransaccion;
@@ -102,11 +125,13 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           widget.model.zDocumentoRepLegal = kyc.zDocumentoRepLegal;
           widget.model.zGeneroRepLegal = kyc.zGeneroRepLegal;
           widget.model.zCorreoRepLegal = kyc.zCorreoRepLegal;
+          widget.model.zPaisRepLega = kyc.zPaisRepLega;
           widget.model.zProvinciaRepLegal = kyc.zProvinciaRepLegal;
           widget.model.zCiudadRepLegal = kyc.zCiudadRepLegal;
           widget.model.zCantonRepLegal = kyc.zCantonRepLegal;
           widget.model.zCalleRepLegal = kyc.zCalleRepLegal;
           widget.model.zNumeroRepLegal = kyc.zNumeroRepLegal;
+          widget.model.zInterseccionRepLegal = kyc.zInterseccionRepLegal;
           widget.model.zTelefonoRepLegal = kyc.zTelefonoRepLegal;
           widget.model.zNombreConyugue = kyc.zNombreConyugue;
           widget.model.zDocConyugue = kyc.zDocConyugue;
@@ -121,6 +146,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           _objetoSocialController.text = kyc.zObjetoSocial ?? '';
           _paginaInternetController.text = kyc.zPaginaInternet ?? '';
         });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ Registro encontrado y cargado'),
@@ -158,44 +184,60 @@ class _DatosGeneralesState extends State<DatosGenerales> {
             label: 'Fecha',
             required: true,
             onSaved: (v) => widget.model.zFecha = v,
-            initialValue: widget.model.zFecha,
           ),
         ]),
         // Fila 2 - RUC y Razón Social
         ResponsiveRow(children: [
+          // ── RUC: bloqueado si el registro ya existe ──
           TextFormField(
             controller: _taxIdController,
+            readOnly: _esRegistroExistente,
+            style: TextStyle(
+              color: _esRegistroExistente ? Colors.grey[600] : Colors.black,
+            ),
             decoration: InputDecoration(
               labelText: 'RUC *',
               prefixIcon: Icon(Icons.badge, color: Colors.grey[600]),
               filled: true,
-              fillColor: Colors.grey[50],
+              fillColor:
+                  _esRegistroExistente ? Colors.grey[100] : Colors.grey[50],
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: WebStyles.cyanAccent, width: 2),
+                borderSide: BorderSide(
+                  color:
+                      _esRegistroExistente ? Colors.grey : WebStyles.cyanAccent,
+                  width: 2,
+                ),
               ),
-              suffixIcon: _buscando
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
+              // Candado cuando está bloqueado, lupa cuando es nuevo
+              suffixIcon: _esRegistroExistente
+                  ? Tooltip(
+                      message: 'El RUC no puede modificarse',
+                      child: Icon(Icons.lock, color: Colors.grey[400]),
                     )
-                  : IconButton(
-                      icon: const Icon(Icons.search,
-                          color: WebStyles.primaryBlue),
-                      onPressed: () => _buscarPorRUC(_taxIdController.text),
-                    ),
+                  : _buscando
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : IconButton(
+                          icon: const Icon(Icons.search,
+                              color: WebStyles.primaryBlue),
+                          onPressed: () => _buscarPorRUC(_taxIdController.text),
+                        ),
             ),
-            onChanged: (v) {
-              widget.model.taxId = v;
-              if (v.length >= 10) _buscarPorRUC(v);
-            },
+            onChanged: _esRegistroExistente
+                ? null
+                : (v) {
+                    widget.model.taxId = v;
+                    if (v.length >= 10) _buscarPorRUC(v);
+                  },
             onSaved: (v) => widget.model.taxId = v,
             validator: (v) =>
                 (v == null || v.isEmpty) ? 'Campo requerido' : null,
@@ -227,6 +269,40 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           icon: Icons.description,
           controller: _objetoSocialController,
           onSaved: (v) => widget.model.zObjetoSocial = v,
+        ),
+        const SizedBox(height: 16),
+        // Tipo de Actividad Económica
+        StatefulBuilder(
+          builder: (context, setDropState) {
+            return DropdownButtonFormField<String>(
+              value: widget.model.tipoActividad,
+              decoration: InputDecoration(
+                labelText: 'Tipo de Actividad Económica *',
+                prefixIcon: Icon(Icons.category, color: Colors.grey[600]),
+                filled: true,
+                fillColor: Colors.grey[50],
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: WebStyles.cyanAccent, width: 2),
+                ),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'IN', child: Text('Independiente')),
+                DropdownMenuItem(value: 'OT', child: Text('Otros')),
+                DropdownMenuItem(value: 'PR', child: Text('Empleado Privado')),
+                DropdownMenuItem(
+                    value: 'PU', child: Text('Funcionario Publico')),
+              ],
+              onChanged: (v) {
+                setDropState(() => widget.model.tipoActividad = v);
+              },
+              onSaved: (v) => widget.model.tipoActividad = v,
+              validator: (v) => v == null ? 'Campo requerido' : null,
+            );
+          },
         ),
         const SizedBox(height: 16),
         // Actividad Económica
@@ -280,12 +356,10 @@ class _DatosGeneralesState extends State<DatosGenerales> {
     required IconData icon,
     bool required = false,
     TextInputType? keyboardType,
-    String? initialValue,
     TextEditingController? controller,
     void Function(String?)? onSaved,
   }) {
     return TextFormField(
-      initialValue: controller == null ? initialValue : null,
       controller: controller,
       keyboardType: keyboardType,
       decoration: InputDecoration(
@@ -310,12 +384,11 @@ class _DatosGeneralesState extends State<DatosGenerales> {
   Widget _buildDateField({
     required String label,
     bool required = false,
-    DateTime? initialValue,
     void Function(DateTime?)? onSaved,
   }) {
     final controller = TextEditingController(
-      text: initialValue != null
-          ? '${initialValue.day}/${initialValue.month}/${initialValue.year}'
+      text: widget.model.zFecha != null
+          ? '${widget.model.zFecha!.day}/${widget.model.zFecha!.month}/${widget.model.zFecha!.year}'
           : '',
     );
     return TextFormField(
@@ -338,7 +411,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
       onTap: () async {
         final date = await showDatePicker(
           context: context,
-          initialDate: DateTime.now(),
+          initialDate: widget.model.zFecha ?? DateTime.now(),
           firstDate: DateTime(2000),
           lastDate: DateTime(2100),
         );
