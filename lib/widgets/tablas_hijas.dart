@@ -25,6 +25,7 @@ class _TablasHijasState extends State<TablasHijas>
   List<PrincipalClienteModel> _clientes = [];
   List<PepModel> _peps = [];
   List<ReferenciaBancariaModel> _referencias = [];
+  List<Map<String, dynamic>> _paises = [];
   bool _cargando = false;
 
   @override
@@ -51,11 +52,13 @@ class _TablasHijasState extends State<TablasHijas>
     final peps = await _service.obtenerPEP(widget.personalDataId!);
     final referencias =
         await _service.obtenerReferenciasBancarias(widget.personalDataId!);
+    final paises = await _service.obtenerPaises();
     setState(() {
       _accionistas = accionistas;
       _clientes = clientes;
       _peps = peps;
       _referencias = referencias;
+      _paises = paises;
       _cargando = false;
     });
   }
@@ -409,6 +412,25 @@ class _TablasHijasState extends State<TablasHijas>
                   keyboardType: TextInputType.number,
                   onChanged: (v) =>
                       model.zPorcentajeVentas = double.tryParse(v),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int>(
+                  value: model.zPaisId,
+                  decoration: const InputDecoration(
+                    labelText: 'País',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _paises
+                      .map((p) => DropdownMenuItem<int>(
+                            value: p['id'] as int,
+                            child: Text(p['Name'] ?? ''),
+                          ))
+                      .toList(),
+                  onChanged: (v) {
+                    model.zPaisId = v;
+                    model.zPaisIdentifier =
+                        _paises.firstWhere((p) => p['id'] == v)['Name'];
+                  },
                 ),
                 const SizedBox(height: 12),
                 TextFormField(

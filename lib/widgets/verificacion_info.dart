@@ -37,9 +37,9 @@ class _VerificacionInfoState extends State<VerificacionInfo> {
             widget.model.funcionJudicial, (v) {
           setState(() => widget.model.funcionJudicial = v);
         }),
-        _buildSwitch('Bureau de Crédito', Icons.credit_score, 'bureauCredito',
-            widget.model.bureauCredito, (v) {
-          setState(() => widget.model.bureauCredito = v);
+        _buildSwitch('Superintendencia de Cías', Icons.credit_score, 'zSuperintendenciaCias',
+            widget.model.zSuperintendenciaCias, (v) {
+          setState(() => widget.model.zSuperintendenciaCias = v);
         }),
         _buildSwitch('Antecedentes Penales', Icons.security,
             'antecedentespenales', widget.model.antecedentespenales, (v) {

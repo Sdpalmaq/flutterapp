@@ -78,7 +78,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           widget.model.registroCivil = kyc.registroCivil;
           widget.model.sri = kyc.sri;
           widget.model.funcionJudicial = kyc.funcionJudicial;
-          widget.model.bureauCredito = kyc.bureauCredito;
+          widget.model.zSuperintendenciaCias = kyc.zSuperintendenciaCias;
           widget.model.antecedentespenales = kyc.antecedentespenales;
           widget.model.otros = kyc.otros;
           widget.model.zProvinciaTrabCliente = kyc.zProvinciaTrabCliente;

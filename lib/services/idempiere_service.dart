@@ -444,4 +444,19 @@ class IdempiereService {
       return false;
     }
   }
+
+  // ======= Paises =======
+  Future<List<Map<String, dynamic>>> obtenerPaises() async {
+    if (_token == null) await login();
+    final response = await http.get(
+      Uri.parse('${ApiConfig.baseUrl}/models/C_Country'
+          '?\$orderby=Name&\$top=300'),
+      headers: _headers,
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data['records']);
+    }
+    return [];
+  }
 }

@@ -34,7 +34,7 @@ class KycJuridicaModel {
   bool registroCivil;
   bool sri;
   bool funcionJudicial;
-  bool bureauCredito;
+  bool zSuperintendenciaCias;
   bool antecedentespenales;
   bool otros;
 
@@ -126,7 +126,7 @@ class KycJuridicaModel {
     this.registroCivil = false,
     this.sri = false,
     this.funcionJudicial = false,
-    this.bureauCredito = false,
+    this.zSuperintendenciaCias = false,
     this.antecedentespenales = false,
     this.otros = false,
     this.zProvinciaTrabCliente,
@@ -205,7 +205,7 @@ class KycJuridicaModel {
       registroCivil: json['RegistroCivil'] ?? false,
       sri: json['SRI'] ?? false,
       funcionJudicial: json['FuncionJudicial'] ?? false,
-      bureauCredito: json['BureauCredito'] ?? false,
+      zSuperintendenciaCias: json['zSuperintendenciaCias'] ?? false,
       antecedentespenales: json['AntecedentesPenales'] ?? false,
       otros: json['Otros'] ?? false,
       zProvinciaTrabCliente: json['zProvinciaTrabajoCliente'],
@@ -291,7 +291,7 @@ class KycJuridicaModel {
     map['RegistroCivil'] = registroCivil;
     map['SRI'] = sri;
     map['FuncionJudicial'] = funcionJudicial;
-    map['BureauCredito'] = bureauCredito;
+    map['zSuperintendenciaCias'] = zSuperintendenciaCias;
     map['AntecedentesPenales'] = antecedentespenales;
     map['Otros'] = otros;
     if (zProvinciaTrabCliente != null) map['zProvinciaTrabajoCliente'] = zProvinciaTrabCliente;
@@ -398,7 +398,7 @@ class KycJuridicaModel {
     map['RegistroCivil'] = registroCivil;
     map['SRI'] = sri;
     map['FuncionJudicial'] = funcionJudicial;
-    map['BureauCredito'] = bureauCredito;
+    map['zSuperintendenciaCias'] = zSuperintendenciaCias;
     map['AntecedentesPenales'] = antecedentespenales;
     map['Otros'] = otros;
 
