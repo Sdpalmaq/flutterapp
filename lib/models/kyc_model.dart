@@ -20,6 +20,7 @@ class KycJuridicaModel {
   final String? uid;
 
   IdempiereRef? adOrgId;
+  IdempiereRef? adClientId; // ← agregar
   String? name;
   String? taxId;
   IdempiereRef? cBpartnerId;
@@ -113,6 +114,7 @@ class KycJuridicaModel {
     this.id,
     this.uid,
     this.adOrgId,
+    this.adClientId, // ← agregar
     this.name,
     this.taxId,
     this.cBpartnerId,
@@ -191,12 +193,21 @@ class KycJuridicaModel {
     final model = KycJuridicaModel(
       id: json['id'],
       uid: json['uid'],
-      adOrgId: json['AD_Org_ID'] != null ? IdempiereRef.fromJson(json['AD_Org_ID']) : null,
+      adOrgId: json['AD_Org_ID'] != null
+          ? IdempiereRef.fromJson(json['AD_Org_ID'])
+          : null,
+      adClientId: json['AD_Client_ID'] != null
+          ? IdempiereRef.fromJson(json['AD_Client_ID'])
+          : null,
       name: json['Name'],
       taxId: json['TaxID'],
-      cBpartnerId: json['C_BPartner_ID'] != null ? IdempiereRef.fromJson(json['C_BPartner_ID']) : null,
+      cBpartnerId: json['C_BPartner_ID'] != null
+          ? IdempiereRef.fromJson(json['C_BPartner_ID'])
+          : null,
       actividadEconomica: json['ActividadEconomica'],
-      tipoActividad: json['TipoActividad'] is Map ? json['TipoActividad']['id'] as String? : json['TipoActividad'] as String?,
+      tipoActividad: json['TipoActividad'] is Map
+          ? json['TipoActividad']['id'] as String?
+          : json['TipoActividad'] as String?,
       zCorreoCliente: json['zCorreoCliente'],
       zObjetoSocial: json['ZObjetoSocial'],
       zPaginaInternet: json['ZPaginaInternet'],
@@ -220,7 +231,8 @@ class KycJuridicaModel {
       zVinculacionEmpresa: json['zVinculacionEmpresa'],
       zBienTransaccion: json['zBienTransaccion'],
       zPvpTransaccion: json['zPVPTransaccion']?.toDouble(),
-      zFormaPago: json['PaymentRule'] != null ? json['PaymentRule']['id'] : null,
+      zFormaPago:
+          json['PaymentRule'] != null ? json['PaymentRule']['id'] : null,
       zOrigenFondos: json['zOrigenFondos'],
       zActivos: json['zActivos']?.toDouble(),
       zPasivos: json['zPasivos']?.toDouble(),
@@ -248,7 +260,9 @@ class KycJuridicaModel {
       zMargenOperacional3: json['ZMargenOperacional3']?.toDouble(),
       zNombreRespresentanteLegal: json['zNombreRespresentanteLegal'],
       zDocumentoRepLegal: json['zDocumentoRepLegal'],
-      zGeneroRepLegal: json['zGeneroLegalRep'] != null ? json['zGeneroLegalRep']['id'] : null,
+      zGeneroRepLegal: json['zGeneroLegalRep'] != null
+          ? json['zGeneroLegalRep']['id']
+          : null,
       zCorreoRepLegal: json['zEmailRepLegal'],
       zPaisRepLega: json['zPaisRepLega'],
       zProvinciaRepLegal: json['zProvinciaRepLegal'],
@@ -282,7 +296,8 @@ class KycJuridicaModel {
     if (tipoActividad != null) map['TipoActividad'] = tipoActividad;
     if (name != null) map['Name'] = name;
     if (taxId != null) map['TaxID'] = taxId;
-    if (actividadEconomica != null) map['ActividadEconomica'] = actividadEconomica;
+    if (actividadEconomica != null)
+      map['ActividadEconomica'] = actividadEconomica;
     if (zCorreoCliente != null) map['zCorreoCliente'] = zCorreoCliente;
     if (zAgencia != null) map['ZAgencia'] = zAgencia;
     if (zObjetoSocial != null) map['ZObjetoSocial'] = zObjetoSocial;
@@ -294,16 +309,26 @@ class KycJuridicaModel {
     map['zSuperintendenciaCias'] = zSuperintendenciaCias;
     map['AntecedentesPenales'] = antecedentespenales;
     map['Otros'] = otros;
-    if (zProvinciaTrabCliente != null) map['zProvinciaTrabajoCliente'] = zProvinciaTrabCliente;
-    if (zCiudadTrabCliente != null) map['zCiudadTrabajoCliente'] = zCiudadTrabCliente;
-    if (zCantonTrabCliente != null) map['zCantonTrabajoCliente'] = zCantonTrabCliente;
-    if (zCalleTrabCliente != null) map['zCalleTrabajoCliente'] = zCalleTrabCliente;
-    if (zNumeroTrabCliente != null) map['zNumeroTrabajoCliente'] = zNumeroTrabCliente;
-    if (zInterseccionDomicilio != null) map['zInterseccionDomicilio'] = zInterseccionDomicilio;
-    if (zTelefonoTrabCliente != null) map['zTelefonoTrabajoCliente'] = zTelefonoTrabCliente;
-    if (zNombrePersonaTransaccion != null) map['zNombrePersonaTransaccion'] = zNombrePersonaTransaccion;
-    if (zDocumentoPersonaTransa != null) map['zDocumentoPersonaTransa'] = zDocumentoPersonaTransa;
-    if (zVinculacionEmpresa != null) map['zVinculacionEmpresa'] = zVinculacionEmpresa;
+    if (zProvinciaTrabCliente != null)
+      map['zProvinciaTrabajoCliente'] = zProvinciaTrabCliente;
+    if (zCiudadTrabCliente != null)
+      map['zCiudadTrabajoCliente'] = zCiudadTrabCliente;
+    if (zCantonTrabCliente != null)
+      map['zCantonTrabajoCliente'] = zCantonTrabCliente;
+    if (zCalleTrabCliente != null)
+      map['zCalleTrabajoCliente'] = zCalleTrabCliente;
+    if (zNumeroTrabCliente != null)
+      map['zNumeroTrabajoCliente'] = zNumeroTrabCliente;
+    if (zInterseccionDomicilio != null)
+      map['zInterseccionDomicilio'] = zInterseccionDomicilio;
+    if (zTelefonoTrabCliente != null)
+      map['zTelefonoTrabajoCliente'] = zTelefonoTrabCliente;
+    if (zNombrePersonaTransaccion != null)
+      map['zNombrePersonaTransaccion'] = zNombrePersonaTransaccion;
+    if (zDocumentoPersonaTransa != null)
+      map['zDocumentoPersonaTransa'] = zDocumentoPersonaTransa;
+    if (zVinculacionEmpresa != null)
+      map['zVinculacionEmpresa'] = zVinculacionEmpresa;
     if (zBienTransaccion != null) map['zBienTransaccion'] = zBienTransaccion;
     if (zPvpTransaccion != null) map['zPVPTransaccion'] = zPvpTransaccion;
     if (zFormaPago != null) map['PaymentRule'] = zFormaPago;
@@ -313,38 +338,49 @@ class KycJuridicaModel {
     if (zPatrimonio != null) map['zPatrimonio'] = zPatrimonio;
     if (zVentas != null) map['zVentas'] = zVentas;
     if (zCostVentas != null) map['zCostoVentas'] = zCostVentas;
-    if (zGastosDeOperacion != null) map['zGastosdeOperacion'] = zGastosDeOperacion;
+    if (zGastosDeOperacion != null)
+      map['zGastosdeOperacion'] = zGastosDeOperacion;
     if (zUtilidadNeta != null) map['zUtilidadNeta'] = zUtilidadNeta;
-    if (zMargenOperacional != null) map['zMargenOperacional'] = zMargenOperacional;
+    if (zMargenOperacional != null)
+      map['zMargenOperacional'] = zMargenOperacional;
     if (zActivos2 != null) map['ZActivos2'] = zActivos2;
     if (zPasivos2 != null) map['ZPasivos2'] = zPasivos2;
     if (zPatrimonio2 != null) map['ZPatrimonio2'] = zPatrimonio2;
     if (zVentas2 != null) map['ZVentas2'] = zVentas2;
     if (zCostVentas2 != null) map['ZCostVentas2'] = zCostVentas2;
-    if (zGastosDeOperacion2 != null) map['ZGastosDeOperacion2'] = zGastosDeOperacion2;
+    if (zGastosDeOperacion2 != null)
+      map['ZGastosDeOperacion2'] = zGastosDeOperacion2;
     if (zUtilidadNeta2 != null) map['ZUtildadNeta2'] = zUtilidadNeta2;
-    if (zMargenOperacional2 != null) map['ZMargenOperacional2'] = zMargenOperacional2;
+    if (zMargenOperacional2 != null)
+      map['ZMargenOperacional2'] = zMargenOperacional2;
     if (zActivos3 != null) map['ZActivos3'] = zActivos3;
     if (zPasivos3 != null) map['ZPasivos3'] = zPasivos3;
     if (zPatrimonio3 != null) map['ZPatrimonio3'] = zPatrimonio3;
     if (zVentas3 != null) map['ZVentas3'] = zVentas3;
     if (zCostVentas3 != null) map['ZCostVentas3'] = zCostVentas3;
-    if (zGastosDeOperacion3 != null) map['ZGastosDeOperacion3'] = zGastosDeOperacion3;
+    if (zGastosDeOperacion3 != null)
+      map['ZGastosDeOperacion3'] = zGastosDeOperacion3;
     if (zUtilidadNeta3 != null) map['ZUtildadNeta3'] = zUtilidadNeta3;
-    if (zMargenOperacional3 != null) map['ZMargenOperacional3'] = zMargenOperacional3;
-    if (zNombreRespresentanteLegal != null) map['zNombreRespresentanteLegal'] = zNombreRespresentanteLegal;
-    if (zDocumentoRepLegal != null) map['zDocumentoRepLegal'] = zDocumentoRepLegal;
+    if (zMargenOperacional3 != null)
+      map['ZMargenOperacional3'] = zMargenOperacional3;
+    if (zNombreRespresentanteLegal != null)
+      map['zNombreRespresentanteLegal'] = zNombreRespresentanteLegal;
+    if (zDocumentoRepLegal != null)
+      map['zDocumentoRepLegal'] = zDocumentoRepLegal;
     if (zGeneroRepLegal != null) map['zGeneroLegalRep'] = zGeneroRepLegal;
     if (zCorreoRepLegal != null) map['zEmailRepLegal'] = zCorreoRepLegal;
     if (zPaisRepLega != null) map['zPaisRepLega'] = zPaisRepLega;
-    if (zProvinciaRepLegal != null) map['zProvinciaRepLegal'] = zProvinciaRepLegal;
+    if (zProvinciaRepLegal != null)
+      map['zProvinciaRepLegal'] = zProvinciaRepLegal;
     if (zCiudadRepLegal != null) map['zCiudadRepLegal'] = zCiudadRepLegal;
     if (zCantonRepLegal != null) map['zCantonRepLegal'] = zCantonRepLegal;
     if (zCalleRepLegal != null) map['zCalleRepLegal'] = zCalleRepLegal;
     if (zNumeroRepLegal != null) map['zNoRepLegal'] = zNumeroRepLegal;
-    if (zInterseccionRepLegal != null) map['zInterseccionRepLegal'] = zInterseccionRepLegal;
+    if (zInterseccionRepLegal != null)
+      map['zInterseccionRepLegal'] = zInterseccionRepLegal;
     if (zTelefonoRepLegal != null) map['zPhoneRepLegal'] = zTelefonoRepLegal;
-    if (zNombreConyugue != null) map['zNombreConyugueRepLegal'] = zNombreConyugue;
+    if (zNombreConyugue != null)
+      map['zNombreConyugueRepLegal'] = zNombreConyugue;
     if (zDocConyugue != null) map['zDocumentoConyugueRepLegal'] = zDocConyugue;
     if (zObservacionesKyc != null) map['zObservacionesKYC'] = zObservacionesKyc;
     map['IsPPE'] = isPpe;
@@ -379,10 +415,13 @@ class KycJuridicaModel {
     // Campos de texto y números — comparación directa
     addIfChanged('Name', name, orig['Name']);
     addIfChanged('TaxID', taxId, orig['TaxID']);
-    addIfChanged('ActividadEconomica', actividadEconomica, orig['ActividadEconomica']);
+    addIfChanged(
+        'ActividadEconomica', actividadEconomica, orig['ActividadEconomica']);
 
     // TipoActividad — lista simple (IN, OT, PR, PU)
-    final tipoActOrig = orig['TipoActividad'] is Map ? orig['TipoActividad']['id'] : orig['TipoActividad'];
+    final tipoActOrig = orig['TipoActividad'] is Map
+        ? orig['TipoActividad']['id']
+        : orig['TipoActividad'];
     addIfChanged('TipoActividad', tipoActividad, tipoActOrig);
     addIfChanged('zCorreoCliente', zCorreoCliente, orig['zCorreoCliente']);
     addIfChanged('ZAgencia', zAgencia, orig['ZAgencia']);
@@ -390,7 +429,8 @@ class KycJuridicaModel {
     addIfChanged('ZPaginaInternet', zPaginaInternet, orig['ZPaginaInternet']);
 
     // Fecha
-    final fechaStr = zFecha != null ? zFecha!.toIso8601String().split('T')[0] : null;
+    final fechaStr =
+        zFecha != null ? zFecha!.toIso8601String().split('T')[0] : null;
     final fechaOrig = orig['ZFecha'];
     if (fechaStr != null && fechaStr != fechaOrig) map['ZFecha'] = fechaStr;
 
@@ -403,26 +443,38 @@ class KycJuridicaModel {
     map['Otros'] = otros;
 
     // Dirección
-    addIfChanged('zProvinciaTrabajoCliente', zProvinciaTrabCliente, orig['zProvinciaTrabajoCliente']);
-    addIfChanged('zCiudadTrabajoCliente', zCiudadTrabCliente, orig['zCiudadTrabajoCliente']);
-    addIfChanged('zCantonTrabajoCliente', zCantonTrabCliente, orig['zCantonTrabajoCliente']);
-    addIfChanged('zCalleTrabajoCliente', zCalleTrabCliente, orig['zCalleTrabajoCliente']);
-    addIfChanged('zNumeroTrabajoCliente', zNumeroTrabCliente, orig['zNumeroTrabajoCliente']);
-    addIfChanged('zInterseccionDomicilio', zInterseccionDomicilio, orig['zInterseccionDomicilio']);
-    addIfChanged('zTelefonoTrabajoCliente', zTelefonoTrabCliente, orig['zTelefonoTrabajoCliente']);
+    addIfChanged('zProvinciaTrabajoCliente', zProvinciaTrabCliente,
+        orig['zProvinciaTrabajoCliente']);
+    addIfChanged('zCiudadTrabajoCliente', zCiudadTrabCliente,
+        orig['zCiudadTrabajoCliente']);
+    addIfChanged('zCantonTrabajoCliente', zCantonTrabCliente,
+        orig['zCantonTrabajoCliente']);
+    addIfChanged('zCalleTrabajoCliente', zCalleTrabCliente,
+        orig['zCalleTrabajoCliente']);
+    addIfChanged('zNumeroTrabajoCliente', zNumeroTrabCliente,
+        orig['zNumeroTrabajoCliente']);
+    addIfChanged('zInterseccionDomicilio', zInterseccionDomicilio,
+        orig['zInterseccionDomicilio']);
+    addIfChanged('zTelefonoTrabajoCliente', zTelefonoTrabCliente,
+        orig['zTelefonoTrabajoCliente']);
 
     // Persona Transacción
-    addIfChanged('zNombrePersonaTransaccion', zNombrePersonaTransaccion, orig['zNombrePersonaTransaccion']);
+    addIfChanged('zNombrePersonaTransaccion', zNombrePersonaTransaccion,
+        orig['zNombrePersonaTransaccion']);
     // zDocumentoPersonaTransa NO se incluye — iDempiere no permite actualizarlo
-    addIfChanged('zVinculacionEmpresa', zVinculacionEmpresa, orig['zVinculacionEmpresa']);
+    addIfChanged('zVinculacionEmpresa', zVinculacionEmpresa,
+        orig['zVinculacionEmpresa']);
 
     // Transacción
-    addIfChanged('zBienTransaccion', zBienTransaccion, orig['zBienTransaccion']);
+    addIfChanged(
+        'zBienTransaccion', zBienTransaccion, orig['zBienTransaccion']);
     addIfChanged('zPVPTransaccion', zPvpTransaccion, orig['zPVPTransaccion']);
     addIfChanged('zOrigenFondos', zOrigenFondos, orig['zOrigenFondos']);
 
     // Forma de pago — iDempiere lo devuelve como objeto, se envía como string
-    final formaPagoOrig = orig['PaymentRule'] is Map ? orig['PaymentRule']['id'] : orig['PaymentRule'];
+    final formaPagoOrig = orig['PaymentRule'] is Map
+        ? orig['PaymentRule']['id']
+        : orig['PaymentRule'];
     addIfChanged('PaymentRule', zFormaPago, formaPagoOrig);
 
     // Financiera Año 1
@@ -431,9 +483,11 @@ class KycJuridicaModel {
     addIfChanged('zPatrimonio', zPatrimonio, orig['zPatrimonio']);
     addIfChanged('zVentas', zVentas, orig['zVentas']);
     addIfChanged('zCostoVentas', zCostVentas, orig['zCostoVentas']);
-    addIfChanged('zGastosdeOperacion', zGastosDeOperacion, orig['zGastosdeOperacion']);
+    addIfChanged(
+        'zGastosdeOperacion', zGastosDeOperacion, orig['zGastosdeOperacion']);
     addIfChanged('zUtilidadNeta', zUtilidadNeta, orig['zUtilidadNeta']);
-    addIfChanged('zMargenOperacional', zMargenOperacional, orig['zMargenOperacional']);
+    addIfChanged(
+        'zMargenOperacional', zMargenOperacional, orig['zMargenOperacional']);
 
     // Financiera Año 2
     addIfChanged('ZActivos2', zActivos2, orig['ZActivos2']);
@@ -441,9 +495,11 @@ class KycJuridicaModel {
     addIfChanged('ZPatrimonio2', zPatrimonio2, orig['ZPatrimonio2']);
     addIfChanged('ZVentas2', zVentas2, orig['ZVentas2']);
     addIfChanged('ZCostVentas2', zCostVentas2, orig['ZCostVentas2']);
-    addIfChanged('ZGastosDeOperacion2', zGastosDeOperacion2, orig['ZGastosDeOperacion2']);
+    addIfChanged('ZGastosDeOperacion2', zGastosDeOperacion2,
+        orig['ZGastosDeOperacion2']);
     addIfChanged('ZUtildadNeta2', zUtilidadNeta2, orig['ZUtildadNeta2']);
-    addIfChanged('ZMargenOperacional2', zMargenOperacional2, orig['ZMargenOperacional2']);
+    addIfChanged('ZMargenOperacional2', zMargenOperacional2,
+        orig['ZMargenOperacional2']);
 
     // Financiera Año 3
     addIfChanged('ZActivos3', zActivos3, orig['ZActivos3']);
@@ -451,28 +507,39 @@ class KycJuridicaModel {
     addIfChanged('ZPatrimonio3', zPatrimonio3, orig['ZPatrimonio3']);
     addIfChanged('ZVentas3', zVentas3, orig['ZVentas3']);
     addIfChanged('ZCostVentas3', zCostVentas3, orig['ZCostVentas3']);
-    addIfChanged('ZGastosDeOperacion3', zGastosDeOperacion3, orig['ZGastosDeOperacion3']);
+    addIfChanged('ZGastosDeOperacion3', zGastosDeOperacion3,
+        orig['ZGastosDeOperacion3']);
     addIfChanged('ZUtildadNeta3', zUtilidadNeta3, orig['ZUtildadNeta3']);
-    addIfChanged('ZMargenOperacional3', zMargenOperacional3, orig['ZMargenOperacional3']);
+    addIfChanged('ZMargenOperacional3', zMargenOperacional3,
+        orig['ZMargenOperacional3']);
 
     // Representante Legal
-    addIfChanged('zNombreRespresentanteLegal', zNombreRespresentanteLegal, orig['zNombreRespresentanteLegal']);
-    addIfChanged('zDocumentoRepLegal', zDocumentoRepLegal, orig['zDocumentoRepLegal']);
+    addIfChanged('zNombreRespresentanteLegal', zNombreRespresentanteLegal,
+        orig['zNombreRespresentanteLegal']);
+    addIfChanged(
+        'zDocumentoRepLegal', zDocumentoRepLegal, orig['zDocumentoRepLegal']);
     addIfChanged('zEmailRepLegal', zCorreoRepLegal, orig['zEmailRepLegal']);
     addIfChanged('zPaisRepLega', zPaisRepLega, orig['zPaisRepLega']);
-    addIfChanged('zProvinciaRepLegal', zProvinciaRepLegal, orig['zProvinciaRepLegal']);
+    addIfChanged(
+        'zProvinciaRepLegal', zProvinciaRepLegal, orig['zProvinciaRepLegal']);
     addIfChanged('zCiudadRepLegal', zCiudadRepLegal, orig['zCiudadRepLegal']);
     addIfChanged('zCantonRepLegal', zCantonRepLegal, orig['zCantonRepLegal']);
     addIfChanged('zCalleRepLegal', zCalleRepLegal, orig['zCalleRepLegal']);
     addIfChanged('zNoRepLegal', zNumeroRepLegal, orig['zNoRepLegal']);
-    addIfChanged('zInterseccionRepLegal', zInterseccionRepLegal, orig['zInterseccionRepLegal']);
+    addIfChanged('zInterseccionRepLegal', zInterseccionRepLegal,
+        orig['zInterseccionRepLegal']);
     addIfChanged('zPhoneRepLegal', zTelefonoRepLegal, orig['zPhoneRepLegal']);
-    addIfChanged('zNombreConyugueRepLegal', zNombreConyugue, orig['zNombreConyugueRepLegal']);
-    addIfChanged('zDocumentoConyugueRepLegal', zDocConyugue, orig['zDocumentoConyugueRepLegal']);
-    addIfChanged('zObservacionesKYC', zObservacionesKyc, orig['zObservacionesKYC']);
+    addIfChanged('zNombreConyugueRepLegal', zNombreConyugue,
+        orig['zNombreConyugueRepLegal']);
+    addIfChanged('zDocumentoConyugueRepLegal', zDocConyugue,
+        orig['zDocumentoConyugueRepLegal']);
+    addIfChanged(
+        'zObservacionesKYC', zObservacionesKyc, orig['zObservacionesKYC']);
 
     // Género — iDempiere lo devuelve como objeto
-    final generoOrig = orig['zGeneroLegalRep'] is Map ? orig['zGeneroLegalRep']['id'] : orig['zGeneroLegalRep'];
+    final generoOrig = orig['zGeneroLegalRep'] is Map
+        ? orig['zGeneroLegalRep']['id']
+        : orig['zGeneroLegalRep'];
     addIfChanged('zGeneroLegalRep', zGeneroRepLegal, generoOrig);
 
     // PEP — siempre seguro actualizar

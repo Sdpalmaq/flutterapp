@@ -684,7 +684,11 @@ class _KycFormScreenState extends State<KycFormScreen> {
   Widget _buildSeccion() {
     switch (_seccionActual) {
       case 0:
-        return DatosGenerales(model: _model, service: _service);
+        return DatosGenerales(
+          model: _model, service: _service,
+          loginOrgId: widget.orgId, // ← agregar
+          loginClientId: widget.clientId,
+        );
       case 1:
         return VerificacionInfo(model: _model);
       case 2:

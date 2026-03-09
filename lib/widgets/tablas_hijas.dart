@@ -48,7 +48,7 @@ class _TablasHijasState extends State<TablasHijas>
 
   Future<void> _cargarDatos() async {
     setState(() => _cargando = true);
-    await _service.login();
+    //await _service.login();
     final accionistas =
         await _service.obtenerAccionistas(widget.personalDataId!);
     final clientes = await _service.obtenerClientes(widget.personalDataId!);

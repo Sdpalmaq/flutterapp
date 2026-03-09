@@ -61,7 +61,10 @@ class IdempiereService {
   // Crear registro KYC
   Future<bool> crearKYC(Map<String, dynamic> data) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return false; // o return null; según el método
+      }
 
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/models/${ApiConfig.tableName}'),
@@ -80,7 +83,10 @@ class IdempiereService {
   // Actualizar registro KYC
   Future<bool> actualizarKYC(int id, Map<String, dynamic> data) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return false; // o return false; o return null; según el método
+      }
 
       final response = await http.put(
         Uri.parse('${ApiConfig.baseUrl}/models/${ApiConfig.tableName}/$id'),
@@ -99,7 +105,10 @@ class IdempiereService {
   // Obtener registro KYC por ID
   Future<Map<String, dynamic>?> obtenerKYC(int id) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return null; // o return false; o return null; según el método
+      }
 
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/models/${ApiConfig.tableName}/$id'),
@@ -119,7 +128,10 @@ class IdempiereService {
   // Obtener lista de Business Partners
   Future<List<Map<String, dynamic>>> obtenerBPartners() async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return []; // o return false; o return null; según el método
+      }
 
       final response = await http.get(
         Uri.parse(
@@ -141,7 +153,10 @@ class IdempiereService {
   // Obtener lista de registros KYC
   Future<Map<String, dynamic>?> obtenerListaKYC() async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return null; // o return false; o return null; según el método
+      }
 
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/models/${ApiConfig.tableName}?'
@@ -163,7 +178,10 @@ class IdempiereService {
   // Buscar KYC por RUC
   Future<Map<String, dynamic>?> buscarKYCporRUC(String ruc) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return null; // o return false; o return null; según el método
+      }
 
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/models/${ApiConfig.tableName}'
@@ -189,7 +207,11 @@ class IdempiereService {
   // ======= ACCIONISTAS =======
   Future<List<AccionistaModel>> obtenerAccionistas(int personalDataId) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return []; // o return false; o return null; según el método
+      }
+
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/models/ZC_BP_Accionistas'
             '?\$filter=zC_BP_PersonalData_ID eq $personalDataId'),
@@ -211,7 +233,11 @@ class IdempiereService {
   Future<bool> guardarAccionista(
       AccionistaModel accionista, int personalDataId) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return false; // o return false; o return null; según el método
+      }
+
       if (accionista.id != null) {
         final response = await http.put(
           Uri.parse(
@@ -236,7 +262,11 @@ class IdempiereService {
 
   Future<bool> eliminarAccionista(int id) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return false; // o return false; o return null; según el método
+      }
+
       final response = await http.delete(
         Uri.parse('${ApiConfig.baseUrl}/models/ZC_BP_Accionistas/$id'),
         headers: _headers,
@@ -252,7 +282,11 @@ class IdempiereService {
   Future<List<PrincipalClienteModel>> obtenerClientes(
       int personalDataId) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return []; // o return false; o return null; según el método
+      }
+
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/models/ZC_BP_PrincipalesClientes'
             '?\$filter=zC_BP_PersonalData_ID eq $personalDataId'),
@@ -274,7 +308,11 @@ class IdempiereService {
   Future<bool> guardarCliente(
       PrincipalClienteModel cliente, int personalDataId) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return false; // o return false; o return null; según el método
+      }
+
       if (cliente.id != null) {
         final response = await http.put(
           Uri.parse(
@@ -299,7 +337,11 @@ class IdempiereService {
 
   Future<bool> eliminarCliente(int id) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return false; // o return false; o return null; según el método
+      }
+
       final response = await http.delete(
         Uri.parse('${ApiConfig.baseUrl}/models/ZC_BP_PrincipalesClientes/$id'),
         headers: _headers,
@@ -314,7 +356,11 @@ class IdempiereService {
 // ======= PEP =======
   Future<List<PepModel>> obtenerPEP(int personalDataId) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return []; // o return false; o return null; según el método
+      }
+
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/models/ZC_BP_PEP'
             '?\$filter=zC_BP_PersonalData_ID eq $personalDataId'),
@@ -335,7 +381,11 @@ class IdempiereService {
 
   Future<bool> guardarPEP(PepModel pep, int personalDataId) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return false; // o return false; o return null; según el método
+      }
+
       if (pep.id != null) {
         final response = await http.put(
           Uri.parse('${ApiConfig.baseUrl}/models/ZC_BP_PEP/${pep.id}'),
@@ -359,7 +409,10 @@ class IdempiereService {
 
   Future<bool> eliminarPEP(int id) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return false; // o return false; o return null; según el método
+      }
       final response = await http.delete(
         Uri.parse('${ApiConfig.baseUrl}/models/ZC_BP_PEP/$id'),
         headers: _headers,
@@ -374,7 +427,10 @@ class IdempiereService {
   // Crear KYC y retornar el ID creado
   Future<int?> crearKYCConId(Map<String, dynamic> data) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return null; // o return false; o return null; según el método
+      }
 
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/models/${ApiConfig.tableName}'),
@@ -399,7 +455,10 @@ class IdempiereService {
   Future<List<ReferenciaBancariaModel>> obtenerReferenciasBancarias(
       int personalDataId) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return []; // o return false; o return null; según el método
+      }
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/models/ZC_BP_ReferenciasBancarias'
             '?\$filter=zC_BP_PersonalData_ID eq $personalDataId'),
@@ -421,7 +480,10 @@ class IdempiereService {
   Future<bool> guardarReferenciaBancaria(
       ReferenciaBancariaModel ref, int personalDataId) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return false; // o return false; o return null; según el método
+      }
       if (ref.id != null) {
         final response = await http.put(
           Uri.parse(
@@ -446,7 +508,10 @@ class IdempiereService {
 
   Future<bool> eliminarReferenciaBancaria(int id) async {
     try {
-      if (_token == null) await login();
+      if (_token == null) {
+        print('⚠️ Sin token de sesión');
+        return false; // o return false; o return null; según el método
+      }
       final response = await http.delete(
         Uri.parse('${ApiConfig.baseUrl}/models/ZC_BP_ReferenciasBancarias/$id'),
         headers: _headers,
@@ -460,7 +525,10 @@ class IdempiereService {
 
   // ======= Paises =======
   Future<List<Map<String, dynamic>>> obtenerPaises() async {
-    if (_token == null) await login();
+    if (_token == null) {
+      print('⚠️ Sin token de sesión');
+      return []; // o return false; o return null; según el método
+    }
     final response = await http.get(
       Uri.parse('${ApiConfig.baseUrl}/models/C_Country'
           '?\$orderby=Name&\$top=300'),
@@ -475,38 +543,32 @@ class IdempiereService {
 
   // Obtener las orgamnizaciones activas
   Future<List<Map<String, dynamic>>> obtenerOrganizaciones() async {
-    // Login preliminar sin organización para obtener token base
-    final response = await http.post(
-      Uri.parse('${ApiConfig.baseUrl}/auth/tokens'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'userName': ApiConfig.username,
-        'password': ApiConfig.password,
-        'parameters': {
-          'clientId': ApiConfig.clientId,
-          'roleId': ApiConfig.roleId,
-          'language': 'es_CO',
-        }
-      }),
+    // Usar el token ya existente, NO hacer un login nuevo
+    if (_token == null) return [];
+
+    final response = await http.get(
+      Uri.parse('${ApiConfig.baseUrl}/models/AD_Org'
+          '?\$filter=IsActive eq \'Y\'&\$orderby=Name&\$top=100'),
+      headers: _headers,
     );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final tokenPreliminar = data['token'];
+      return List<Map<String, dynamic>>.from(data['records']);
+    }
+    return [];
+  }
 
-      // Con ese token consultar las organizaciones
-      final orgsResponse = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/auth/organizations'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $tokenPreliminar',
-        },
-      );
-
-      if (orgsResponse.statusCode == 200) {
-        final orgsData = jsonDecode(orgsResponse.body);
-        return List<Map<String, dynamic>>.from(orgsData['organizations']);
-      }
+  Future<List<Map<String, dynamic>>> obtenerTenants() async {
+    if (_token == null) return [];
+    final response = await http.get(
+      Uri.parse('${ApiConfig.baseUrl}/models/AD_Client'
+          '?\$filter=IsActive eq \'Y\'&\$orderby=Name&\$top=50'),
+      headers: _headers,
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data['records']);
     }
     return [];
   }

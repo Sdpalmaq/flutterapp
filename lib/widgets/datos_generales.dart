@@ -7,11 +7,15 @@ import 'responsive_row.dart';
 class DatosGenerales extends StatefulWidget {
   final KycJuridicaModel model;
   final IdempiereService service; // ← agregar
+  final int loginOrgId; // ← agregar
+  final int loginClientId; // ← agregar
 
   const DatosGenerales({
     super.key,
     required this.model,
     required this.service, // ← agregar
+    required this.loginOrgId, // ← agregar
+    required this.loginClientId, // ← agregar
   });
   @override
   State<DatosGenerales> createState() => _DatosGeneralesState();
@@ -31,6 +35,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
   late final TextEditingController _objetoSocialController;
   late final TextEditingController _paginaInternetController;
   List<Map<String, dynamic>> _organizaciones = [];
+  List<Map<String, dynamic>> _tenants = []; // ← nuevo
 
   // true si el registro ya existe en iDempiere
   bool get _esRegistroExistente =>
@@ -51,7 +56,22 @@ class _DatosGeneralesState extends State<DatosGenerales> {
         TextEditingController(text: widget.model.zObjetoSocial ?? '');
     _paginaInternetController =
         TextEditingController(text: widget.model.zPaginaInternet ?? '');
+    if (widget.model.adOrgId == null) {
+      widget.model.adOrgId = IdempiereRef(
+        id: widget.loginOrgId,
+        identifier: '',
+      );
+    }
+
+    // Preseleccionar client del login si el modelo no tiene uno ya
+    if (widget.model.adClientId == null) {
+      widget.model.adClientId = IdempiereRef(
+        id: widget.loginClientId,
+        identifier: '',
+      );
+    }
     _cargarOrganizaciones();
+    _cargarClientes(); // ← nuevo método
   }
 
   @override
@@ -67,16 +87,21 @@ class _DatosGeneralesState extends State<DatosGenerales> {
   }
 
   Future<void> _cargarOrganizaciones() async {
-    await _service.login();
+    //await _service.login();
     final orgs = await _service.obtenerOrganizaciones();
     setState(() => _organizaciones = orgs);
+  }
+
+  Future<void> _cargarClientes() async {
+    final tenants = await _service.obtenerTenants();
+    setState(() => _tenants = tenants);
   }
 
   Future<void> _buscarPorRUC(String ruc) async {
     if (ruc.length < 10) return;
     setState(() => _buscando = true);
     try {
-      await _service.login();
+      //await _service.login();
       final data = await _service.buscarKYCporRUC(ruc);
       if (data != null) {
         final kyc = KycJuridicaModel.fromJson(data);
@@ -189,6 +214,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
       children: [
         // Fila 1 - Agencia y Fecha
         ResponsiveRow(children: [
+          // ── AGENCIA (AD_Org_ID) ──
           DropdownButtonFormField<int>(
             value: widget.model.adOrgId?.id,
             decoration: InputDecoration(
@@ -207,7 +233,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
             items: _organizaciones
                 .map((o) => DropdownMenuItem<int>(
                       value: o['id'] as int,
-                      child: Text(o['Name'] ?? ''),
+                      child: Text(o['Name'] ?? o['name'] ?? ''),
                     ))
                 .toList(),
             onChanged: (v) {
@@ -220,15 +246,41 @@ class _DatosGeneralesState extends State<DatosGenerales> {
                 );
               });
             },
-            onSaved: (v) {
+          ),
+          // ── VENDEDOR/TENANT (AD_Client_ID) ──
+          DropdownButtonFormField<int>(
+            value: widget.model.adClientId?.id,
+            decoration: InputDecoration(
+              labelText: 'Vendedor',
+              prefixIcon: Icon(Icons.person_pin, color: Colors.grey[600]),
+              filled: true,
+              fillColor: Colors.grey[50],
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide:
+                    const BorderSide(color: WebStyles.cyanAccent, width: 2),
+              ),
+            ),
+            items: _tenants
+                .map((t) => DropdownMenuItem<int>(
+                      value: t['id'] as int,
+                      child: Text(t['Name'] ?? t['name'] ?? ''),
+                    ))
+                .toList(),
+            onChanged: (v) {
               if (v == null) return;
-              final org = _organizaciones.firstWhere((o) => o['id'] == v);
-              widget.model.adOrgId = IdempiereRef(
-                id: v,
-                identifier: org['Name'] ?? '',
-              );
+              final tenant = _tenants.firstWhere((t) => t['id'] == v);
+              setState(() {
+                widget.model.adClientId = IdempiereRef(
+                  id: v,
+                  identifier: tenant['Name'] ?? '',
+                );
+              });
             },
           ),
+          // ── FECHA ──
           _buildDateField(
             label: 'Fecha',
             required: true,
