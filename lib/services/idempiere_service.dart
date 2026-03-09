@@ -5,6 +5,18 @@ import '../models/child_models.dart';
 
 class IdempiereService {
   String? _token;
+  int? _orgId;
+  int? _clientId;
+
+  void setSession({
+    required String token,
+    required int orgId,
+    required int clientId,
+  }) {
+    _token = token;
+    _orgId = orgId;
+    _clientId = clientId;
+  }
 
   // Login y obtener token
   Future<bool> login() async {
@@ -26,6 +38,7 @@ class IdempiereService {
       );
 
       if (response.statusCode == 200) {
+        print('Login exitoso: ${response.body}');
         final data = jsonDecode(response.body);
         _token = data['token'];
         print('Token obtenido: $_token');
@@ -456,6 +469,44 @@ class IdempiereService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return List<Map<String, dynamic>>.from(data['records']);
+    }
+    return [];
+  }
+
+  // Obtener las orgamnizaciones activas
+  Future<List<Map<String, dynamic>>> obtenerOrganizaciones() async {
+    // Login preliminar sin organización para obtener token base
+    final response = await http.post(
+      Uri.parse('${ApiConfig.baseUrl}/auth/tokens'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userName': ApiConfig.username,
+        'password': ApiConfig.password,
+        'parameters': {
+          'clientId': ApiConfig.clientId,
+          'roleId': ApiConfig.roleId,
+          'language': 'es_CO',
+        }
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final tokenPreliminar = data['token'];
+
+      // Con ese token consultar las organizaciones
+      final orgsResponse = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/auth/organizations'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $tokenPreliminar',
+        },
+      );
+
+      if (orgsResponse.statusCode == 200) {
+        final orgsData = jsonDecode(orgsResponse.body);
+        return List<Map<String, dynamic>>.from(orgsData['organizations']);
+      }
     }
     return [];
   }

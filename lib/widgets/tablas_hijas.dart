@@ -5,11 +5,13 @@ import '../services/idempiere_service.dart';
 class TablasHijas extends StatefulWidget {
   final int? personalDataId;
   final bool isPpe;
+  final IdempiereService service;
 
   const TablasHijas({
     super.key,
     required this.personalDataId,
     required this.isPpe,
+    required this.service,
   });
 
   @override
@@ -18,7 +20,8 @@ class TablasHijas extends StatefulWidget {
 
 class _TablasHijasState extends State<TablasHijas>
     with SingleTickerProviderStateMixin {
-  final IdempiereService _service = IdempiereService();
+  //final IdempiereService _service = IdempiereService();
+  IdempiereService get _service => widget.service;
   late TabController _tabController;
 
   List<AccionistaModel> _accionistas = [];

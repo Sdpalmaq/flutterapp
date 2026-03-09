@@ -6,14 +6,21 @@ import 'responsive_row.dart';
 
 class DatosGenerales extends StatefulWidget {
   final KycJuridicaModel model;
-  const DatosGenerales({super.key, required this.model});
+  final IdempiereService service; // ← agregar
 
+  const DatosGenerales({
+    super.key,
+    required this.model,
+    required this.service, // ← agregar
+  });
   @override
   State<DatosGenerales> createState() => _DatosGeneralesState();
 }
 
 class _DatosGeneralesState extends State<DatosGenerales> {
-  final IdempiereService _service = IdempiereService();
+  //final IdempiereService _service = IdempiereService();
+  IdempiereService get _service => widget.service;
+
   bool _buscando = false;
 
   late final TextEditingController _nameController;
@@ -23,6 +30,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
   late final TextEditingController _agenciaController;
   late final TextEditingController _objetoSocialController;
   late final TextEditingController _paginaInternetController;
+  List<Map<String, dynamic>> _organizaciones = [];
 
   // true si el registro ya existe en iDempiere
   bool get _esRegistroExistente =>
@@ -43,6 +51,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
         TextEditingController(text: widget.model.zObjetoSocial ?? '');
     _paginaInternetController =
         TextEditingController(text: widget.model.zPaginaInternet ?? '');
+    _cargarOrganizaciones();
   }
 
   @override
@@ -55,6 +64,12 @@ class _DatosGeneralesState extends State<DatosGenerales> {
     _objetoSocialController.dispose();
     _paginaInternetController.dispose();
     super.dispose();
+  }
+
+  Future<void> _cargarOrganizaciones() async {
+    await _service.login();
+    final orgs = await _service.obtenerOrganizaciones();
+    setState(() => _organizaciones = orgs);
   }
 
   Future<void> _buscarPorRUC(String ruc) async {
@@ -174,11 +189,45 @@ class _DatosGeneralesState extends State<DatosGenerales> {
       children: [
         // Fila 1 - Agencia y Fecha
         ResponsiveRow(children: [
-          _buildTextField(
-            label: 'Agencia',
-            icon: Icons.store,
-            controller: _agenciaController,
-            onSaved: (v) => widget.model.zAgencia = v,
+          DropdownButtonFormField<int>(
+            value: widget.model.adOrgId?.id,
+            decoration: InputDecoration(
+              labelText: 'Agencia',
+              prefixIcon: Icon(Icons.store, color: Colors.grey[600]),
+              filled: true,
+              fillColor: Colors.grey[50],
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide:
+                    const BorderSide(color: WebStyles.cyanAccent, width: 2),
+              ),
+            ),
+            items: _organizaciones
+                .map((o) => DropdownMenuItem<int>(
+                      value: o['id'] as int,
+                      child: Text(o['Name'] ?? ''),
+                    ))
+                .toList(),
+            onChanged: (v) {
+              if (v == null) return;
+              final org = _organizaciones.firstWhere((o) => o['id'] == v);
+              setState(() {
+                widget.model.adOrgId = IdempiereRef(
+                  id: v,
+                  identifier: org['Name'] ?? '',
+                );
+              });
+            },
+            onSaved: (v) {
+              if (v == null) return;
+              final org = _organizaciones.firstWhere((o) => o['id'] == v);
+              widget.model.adOrgId = IdempiereRef(
+                id: v,
+                identifier: org['Name'] ?? '',
+              );
+            },
           ),
           _buildDateField(
             label: 'Fecha',

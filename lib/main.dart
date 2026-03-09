@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'screens/kyc_form_screen.dart';
+import 'screens/login_screen.dart';
 
 // Mantenemos 'void', pero agregamos 'async' al final
 void main() async {
@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const KycFormScreen(),
+      home: const LoginScreen(),
     );
   }
 }
