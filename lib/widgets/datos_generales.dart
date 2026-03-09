@@ -6,26 +6,28 @@ import 'responsive_row.dart';
 
 class DatosGenerales extends StatefulWidget {
   final KycJuridicaModel model;
-  final IdempiereService service; // ← agregar
-  final int loginOrgId; // ← agregar
-  final int loginClientId; // ← agregar
+  final IdempiereService service;
+  final int loginOrgId;
+  final int loginClientId;
 
   const DatosGenerales({
     super.key,
     required this.model,
-    required this.service, // ← agregar
-    required this.loginOrgId, // ← agregar
-    required this.loginClientId, // ← agregar
+    required this.service,
+    required this.loginOrgId,
+    required this.loginClientId,
   });
+
   @override
   State<DatosGenerales> createState() => _DatosGeneralesState();
 }
 
 class _DatosGeneralesState extends State<DatosGenerales> {
-  //final IdempiereService _service = IdempiereService();
   IdempiereService get _service => widget.service;
 
   bool _buscando = false;
+  bool _cargandoOrgs = true;
+  bool _cargandoTenants = true;
 
   late final TextEditingController _nameController;
   late final TextEditingController _taxIdController;
@@ -34,10 +36,14 @@ class _DatosGeneralesState extends State<DatosGenerales> {
   late final TextEditingController _agenciaController;
   late final TextEditingController _objetoSocialController;
   late final TextEditingController _paginaInternetController;
-  List<Map<String, dynamic>> _organizaciones = [];
-  List<Map<String, dynamic>> _tenants = []; // ← nuevo
 
-  // true si el registro ya existe en iDempiere
+  List<Map<String, dynamic>> _organizaciones = [];
+  List<Map<String, dynamic>> _tenants = [];
+
+  // IDs seleccionados — se manejan localmente para evitar conflictos con el dropdown
+  int? _orgIdSeleccionado;
+  int? _clientIdSeleccionado;
+
   bool get _esRegistroExistente =>
       widget.model.idMutable != null || widget.model.id != null;
 
@@ -56,22 +62,27 @@ class _DatosGeneralesState extends State<DatosGenerales> {
         TextEditingController(text: widget.model.zObjetoSocial ?? '');
     _paginaInternetController =
         TextEditingController(text: widget.model.zPaginaInternet ?? '');
+
+    // Inicializar IDs desde el modelo existente o desde el login
+    _orgIdSeleccionado = widget.model.adOrgId?.id ?? widget.loginOrgId;
+    _clientIdSeleccionado = widget.model.adClientId?.id ?? widget.loginClientId;
+
+    // Preseleccionar en el modelo si no tiene valor
     if (widget.model.adOrgId == null) {
       widget.model.adOrgId = IdempiereRef(
         id: widget.loginOrgId,
         identifier: '',
       );
     }
-
-    // Preseleccionar client del login si el modelo no tiene uno ya
     if (widget.model.adClientId == null) {
       widget.model.adClientId = IdempiereRef(
         id: widget.loginClientId,
         identifier: '',
       );
     }
+
     _cargarOrganizaciones();
-    _cargarClientes(); // ← nuevo método
+    _cargarTenants();
   }
 
   @override
@@ -87,21 +98,83 @@ class _DatosGeneralesState extends State<DatosGenerales> {
   }
 
   Future<void> _cargarOrganizaciones() async {
-    //await _service.login();
-    final orgs = await _service.obtenerOrganizaciones();
-    setState(() => _organizaciones = orgs);
+    setState(() => _cargandoOrgs = true);
+    try {
+      final orgs = await _service.obtenerOrganizaciones();
+      print('Orgs cargadas: ${orgs.length}');
+      for (final o in orgs) {
+        print('  Org → id=${o['id']} name=${o['Name'] ?? o['name']}');
+      }
+      setState(() {
+        _organizaciones = orgs;
+        // Si el ID del login no está en la lista, agregar entrada temporal
+        final existe = orgs.any((o) => o['id'] == _orgIdSeleccionado);
+        if (!existe) {
+          _organizaciones = [
+            {
+              'id': _orgIdSeleccionado,
+              'Name': 'Agencia actual (ID: $_orgIdSeleccionado)'
+            },
+            ...orgs,
+          ];
+        }
+        _cargandoOrgs = false;
+      });
+    } catch (e) {
+      print('Error cargando orgs: $e');
+      setState(() {
+        _organizaciones = [
+          {
+            'id': _orgIdSeleccionado,
+            'Name': 'Agencia (ID: $_orgIdSeleccionado)'
+          }
+        ];
+        _cargandoOrgs = false;
+      });
+    }
   }
 
-  Future<void> _cargarClientes() async {
-    final tenants = await _service.obtenerTenants();
-    setState(() => _tenants = tenants);
+  Future<void> _cargarTenants() async {
+    setState(() => _cargandoTenants = true);
+    try {
+      final tenants = await _service.obtenerTenants();
+      print('Tenants cargados: ${tenants.length}');
+      for (final t in tenants) {
+        print('  Tenant → id=${t['id']} name=${t['Name'] ?? t['name']}');
+      }
+      setState(() {
+        _tenants = tenants;
+        // Si el ID del login no está en la lista, agregar entrada temporal
+        final existe = tenants.any((t) => t['id'] == _clientIdSeleccionado);
+        if (!existe) {
+          _tenants = [
+            {
+              'id': _clientIdSeleccionado,
+              'Name': 'Empresa actual (ID: $_clientIdSeleccionado)'
+            },
+            ...tenants,
+          ];
+        }
+        _cargandoTenants = false;
+      });
+    } catch (e) {
+      print('Error cargando tenants: $e');
+      setState(() {
+        _tenants = [
+          {
+            'id': _clientIdSeleccionado,
+            'Name': 'Empresa (ID: $_clientIdSeleccionado)'
+          }
+        ];
+        _cargandoTenants = false;
+      });
+    }
   }
 
   Future<void> _buscarPorRUC(String ruc) async {
     if (ruc.length < 10) return;
     setState(() => _buscando = true);
     try {
-      //await _service.login();
       final data = await _service.buscarKYCporRUC(ruc);
       if (data != null) {
         final kyc = KycJuridicaModel.fromJson(data);
@@ -202,9 +275,13 @@ class _DatosGeneralesState extends State<DatosGenerales> {
         );
       }
     } catch (e) {
-      print('Error: $e');
+      print('Error buscarPorRUC: $e');
     }
     setState(() => _buscando = false);
+  }
+
+  String _getNombre(Map<String, dynamic> item) {
+    return item['Name'] ?? item['name'] ?? item['identifier'] ?? '(sin nombre)';
   }
 
   @override
@@ -212,74 +289,82 @@ class _DatosGeneralesState extends State<DatosGenerales> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Fila 1 - Agencia y Fecha
+        // Fila 1 - Agencia, Vendedor y Fecha
         ResponsiveRow(children: [
           // ── AGENCIA (AD_Org_ID) ──
-          DropdownButtonFormField<int>(
-            value: widget.model.adOrgId?.id,
-            decoration: InputDecoration(
-              labelText: 'Agencia',
-              prefixIcon: Icon(Icons.store, color: Colors.grey[600]),
-              filled: true,
-              fillColor: Colors.grey[50],
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: WebStyles.cyanAccent, width: 2),
-              ),
-            ),
-            items: _organizaciones
-                .map((o) => DropdownMenuItem<int>(
-                      value: o['id'] as int,
-                      child: Text(o['Name'] ?? o['name'] ?? ''),
-                    ))
-                .toList(),
-            onChanged: (v) {
-              if (v == null) return;
-              final org = _organizaciones.firstWhere((o) => o['id'] == v);
-              setState(() {
-                widget.model.adOrgId = IdempiereRef(
-                  id: v,
-                  identifier: org['Name'] ?? '',
-                );
-              });
-            },
-          ),
+          _cargandoOrgs
+              ? _buildLoadingField('Agencia')
+              : DropdownButtonFormField<int>(
+                  value: _orgIdSeleccionado,
+                  decoration: InputDecoration(
+                    labelText: 'Agencia',
+                    prefixIcon: Icon(Icons.store, color: Colors.grey[600]),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                          color: WebStyles.cyanAccent, width: 2),
+                    ),
+                  ),
+                  items: _organizaciones
+                      .map((o) => DropdownMenuItem<int>(
+                            value: o['id'] as int,
+                            child: Text(_getNombre(o)),
+                          ))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v == null) return;
+                    final org = _organizaciones.firstWhere((o) => o['id'] == v);
+                    setState(() {
+                      _orgIdSeleccionado = v;
+                      widget.model.adOrgId = IdempiereRef(
+                        id: v,
+                        identifier: _getNombre(org),
+                      );
+                    });
+                  },
+                ),
+
           // ── VENDEDOR/TENANT (AD_Client_ID) ──
-          DropdownButtonFormField<int>(
-            value: widget.model.adClientId?.id,
-            decoration: InputDecoration(
-              labelText: 'Vendedor',
-              prefixIcon: Icon(Icons.person_pin, color: Colors.grey[600]),
-              filled: true,
-              fillColor: Colors.grey[50],
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: WebStyles.cyanAccent, width: 2),
-              ),
-            ),
-            items: _tenants
-                .map((t) => DropdownMenuItem<int>(
-                      value: t['id'] as int,
-                      child: Text(t['Name'] ?? t['name'] ?? ''),
-                    ))
-                .toList(),
-            onChanged: (v) {
-              if (v == null) return;
-              final tenant = _tenants.firstWhere((t) => t['id'] == v);
-              setState(() {
-                widget.model.adClientId = IdempiereRef(
-                  id: v,
-                  identifier: tenant['Name'] ?? '',
-                );
-              });
-            },
-          ),
+          _cargandoTenants
+              ? _buildLoadingField('Vendedor')
+              : DropdownButtonFormField<int>(
+                  value: _clientIdSeleccionado,
+                  decoration: InputDecoration(
+                    labelText: 'Vendedor',
+                    prefixIcon: Icon(Icons.person_pin, color: Colors.grey[600]),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                          color: WebStyles.cyanAccent, width: 2),
+                    ),
+                  ),
+                  items: _tenants
+                      .map((t) => DropdownMenuItem<int>(
+                            value: t['id'] as int,
+                            child: Text(_getNombre(t)),
+                          ))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v == null) return;
+                    final tenant = _tenants.firstWhere((t) => t['id'] == v);
+                    setState(() {
+                      _clientIdSeleccionado = v;
+                      widget.model.adClientId = IdempiereRef(
+                        id: v,
+                        identifier: _getNombre(tenant),
+                      );
+                    });
+                  },
+                ),
+
           // ── FECHA ──
           _buildDateField(
             label: 'Fecha',
@@ -287,9 +372,9 @@ class _DatosGeneralesState extends State<DatosGenerales> {
             onSaved: (v) => widget.model.zFecha = v,
           ),
         ]),
+
         // Fila 2 - RUC y Razón Social
         ResponsiveRow(children: [
-          // ── RUC: bloqueado si el registro ya existe ──
           TextFormField(
             controller: _taxIdController,
             readOnly: _esRegistroExistente,
@@ -312,7 +397,6 @@ class _DatosGeneralesState extends State<DatosGenerales> {
                   width: 2,
                 ),
               ),
-              // Candado cuando está bloqueado, lupa cuando es nuevo
               suffixIcon: _esRegistroExistente
                   ? Tooltip(
                       message: 'El RUC no puede modificarse',
@@ -364,6 +448,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
                 (v == null || v.isEmpty) ? 'Campo requerido' : null,
           ),
         ]),
+
         // Objeto Social
         _buildTextField(
           label: 'Objeto Social',
@@ -372,6 +457,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           onSaved: (v) => widget.model.zObjetoSocial = v,
         ),
         const SizedBox(height: 16),
+
         // Tipo de Actividad Económica
         StatefulBuilder(
           builder: (context, setDropState) {
@@ -406,6 +492,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           },
         ),
         const SizedBox(height: 16),
+
         // Actividad Económica
         _buildTextField(
           label: 'Actividad Económica',
@@ -415,6 +502,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           onSaved: (v) => widget.model.actividadEconomica = v,
         ),
         const SizedBox(height: 16),
+
         // Página Internet y Correo
         ResponsiveRow(children: [
           _buildTextField(
@@ -449,6 +537,29 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           ),
         ]),
       ],
+    );
+  }
+
+  // Campo placeholder mientras carga
+  Widget _buildLoadingField(String label) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: Colors.grey[100],
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 10),
+          Text('Cargando...', style: TextStyle(color: Colors.grey[500])),
+        ],
+      ),
     );
   }
 

@@ -541,29 +541,35 @@ class IdempiereService {
     return [];
   }
 
-  // Obtener las orgamnizaciones activas
   Future<List<Map<String, dynamic>>> obtenerOrganizaciones() async {
-    // Usar el token ya existente, NO hacer un login nuevo
     if (_token == null) return [];
 
-    final response = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/models/AD_Org'
-          '?\$filter=IsActive eq \'Y\'&\$orderby=Name&\$top=100'),
-      headers: _headers,
-    );
+    try {
+      // ✅ SOLUCIÓN: Usar "true" y "false" sin comillas simples
+      final urlString =
+          '${ApiConfig.baseUrl}/models/AD_Org?\$filter=IsActive eq true and IsSummary eq false&\$orderby=Name&\$top=100';
+      final url = Uri.parse(Uri.encodeFull(urlString));
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return List<Map<String, dynamic>>.from(data['records']);
+      final response = await http.get(url, headers: _headers);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final records = data['records'] as List;
+        print('✅ Orgs cargadas: ${records.length}');
+        return records.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error: $e');
+      return [];
     }
-    return [];
   }
 
   Future<List<Map<String, dynamic>>> obtenerTenants() async {
     if (_token == null) return [];
     final response = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/models/AD_Client'
-          '?\$filter=IsActive eq \'Y\'&\$orderby=Name&\$top=50'),
+      Uri.parse(
+          '${ApiConfig.baseUrl}/models/AD_Client?\$filter=IsActive eq true&\$orderby=Name&\$top=50'),
       headers: _headers,
     );
     if (response.statusCode == 200) {
