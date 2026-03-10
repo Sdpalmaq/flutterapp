@@ -578,4 +578,18 @@ class IdempiereService {
     }
     return [];
   }
+
+  // Cerrar sesión en el servidor
+  Future<void> logout() async {
+    if (_token == null) return;
+    try {
+      await http.delete(
+        Uri.parse('${ApiConfig.baseUrl}/auth/tokens'),
+        headers: _headers,
+      );
+      _token = null;
+    } catch (e) {
+      print('Error al cerrar sesión en el servidor: $e');
+    }
+  }
 }

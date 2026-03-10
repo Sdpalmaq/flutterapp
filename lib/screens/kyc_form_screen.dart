@@ -9,6 +9,8 @@ import '../widgets/persona_transaccion.dart';
 import '../widgets/situacion_financiera.dart';
 import '../widgets/representante_legal.dart';
 import '../widgets/tablas_hijas.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../screens/login_screen.dart';
 
 class KycFormScreen extends StatefulWidget {
   final String token;
@@ -53,6 +55,32 @@ class _KycFormScreenState extends State<KycFormScreen> {
     {'titulo': 'Representante Legal', 'icono': Icons.account_circle},
     {'titulo': 'Accionistas y PEP', 'icono': Icons.group},
   ];
+
+  // ✅ NUEVO: Función que obliga a validar antes de cambiar de pestaña
+  void _irASeccion(int index) {
+    // Si el usuario quiere regresar a un paso anterior, lo dejamos sin validar.
+    if (index < _seccionActual) {
+      _formKey.currentState?.save();
+      setState(() => _seccionActual = index);
+      return;
+    }
+
+    // Si el usuario quiere AVANZAR, obligamos a validar la pestaña actual
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      setState(() => _seccionActual = index);
+    } else {
+      // Si hay error (ej. RUC incompleto), mostramos alerta y NO avanzamos
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('⚠️ Corrija los errores de esta sección antes de avanzar'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) {
@@ -112,6 +140,24 @@ class _KycFormScreenState extends State<KycFormScreen> {
     }
 
     setState(() => _guardando = false);
+  }
+
+  Future<void> _cerrarSesion() async {
+    // 1. Destruir token en iDempiere
+    await _service.logout();
+
+    // 2. Limpiar almacenamiento local
+    // ✅ CAMBIO AQUÍ: Declarar con final e instanciar con const
+    final storage = const FlutterSecureStorage();
+    await storage.deleteAll();
+
+    // 3. Volver al Login
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    }
   }
 
   // Abre el drawer en móvil
@@ -184,9 +230,13 @@ class _KycFormScreenState extends State<KycFormScreen> {
               trailing: esActual
                   ? const Icon(Icons.check_circle, color: WebStyles.cyanAccent)
                   : null,
+              // onTap: () {
+              //   setState(() => _seccionActual = index);
+              //   Navigator.pop(context);
+              // },
               onTap: () {
-                setState(() => _seccionActual = index);
                 Navigator.pop(context);
+                _irASeccion(index);
               },
             );
           }),
@@ -272,6 +322,21 @@ class _KycFormScreenState extends State<KycFormScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(width: 16), // Espaciador
+
+                        // ✅ NUEVO: Botón de Cerrar Sesión
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.red[400],
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.logout,
+                                color: Colors.white, size: 20),
+                            tooltip: 'Cerrar Sesión',
+                            onPressed: _cerrarSesion,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -346,7 +411,8 @@ class _KycFormScreenState extends State<KycFormScreen> {
                   itemBuilder: (context, index) {
                     final esActual = _seccionActual == index;
                     return InkWell(
-                      onTap: () => setState(() => _seccionActual = index),
+                      //onTap: () => setState(() => _seccionActual = index),
+                      onTap: () => _irASeccion(index),
                       child: Container(
                         margin: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
@@ -469,7 +535,8 @@ class _KycFormScreenState extends State<KycFormScreen> {
                   itemBuilder: (context, index) {
                     final esActual = _seccionActual == index;
                     return GestureDetector(
-                      onTap: () => setState(() => _seccionActual = index),
+                      //onTap: () => setState(() => _seccionActual = index),
+                      onTap: () => _irASeccion(index),
                       child: Container(
                         margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.symmetric(
@@ -653,7 +720,8 @@ class _KycFormScreenState extends State<KycFormScreen> {
                           const SizedBox(width: 8),
                           if (_seccionActual < _secciones.length - 1)
                             ElevatedButton.icon(
-                              onPressed: () => setState(() => _seccionActual++),
+                              // onPressed: () => setState(() => _seccionActual++),
+                              onPressed: () => _irASeccion(_seccionActual + 1),
                               icon: const Icon(Icons.arrow_forward, size: 18),
                               label: Text(isMobile ? '' : 'Siguiente'),
                               style: ElevatedButton.styleFrom(
