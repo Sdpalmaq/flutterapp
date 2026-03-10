@@ -293,6 +293,8 @@ class KycJuridicaModel {
 
     if (adOrgId != null) map['AD_Org_ID'] = {'id': adOrgId!.id};
     if (cBpartnerId != null) map['C_BPartner_ID'] = {'id': cBpartnerId!.id};
+    // En toJsonCreate() de kyc_model.dart, agrega:
+    if (adClientId != null) map['AD_Client_ID'] = {'id': adClientId!.id};
     if (tipoActividad != null) map['TipoActividad'] = tipoActividad;
     if (name != null) map['Name'] = name;
     if (taxId != null) map['TaxID'] = taxId;

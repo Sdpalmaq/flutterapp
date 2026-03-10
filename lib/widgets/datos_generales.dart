@@ -101,36 +101,32 @@ class _DatosGeneralesState extends State<DatosGenerales> {
     setState(() => _cargandoOrgs = true);
     try {
       final orgs = await _service.obtenerOrganizaciones();
-      print('Orgs cargadas: ${orgs.length}');
-      for (final o in orgs) {
-        print('  Org → id=${o['id']} name=${o['Name'] ?? o['name']}');
-      }
       setState(() {
         _organizaciones = orgs;
-        // Si el ID del login no está en la lista, agregar entrada temporal
-        final existe = orgs.any((o) => o['id'] == _orgIdSeleccionado);
-        if (!existe) {
-          _organizaciones = [
-            {
-              'id': _orgIdSeleccionado,
-              'Name': 'Agencia actual (ID: $_orgIdSeleccionado)'
-            },
-            ...orgs,
-          ];
+
+        // Solo pre-seleccionar si el ID del login EXISTE en la lista devuelta por la API
+        final idObjetivo = widget.model.adOrgId?.id ?? widget.loginOrgId;
+        final existe = orgs.any((o) => o['id'] == idObjetivo);
+
+        if (existe) {
+          _orgIdSeleccionado = idObjetivo;
+          widget.model.adOrgId = IdempiereRef(
+            id: idObjetivo,
+            identifier:
+                orgs.firstWhere((o) => o['id'] == idObjetivo)['Name'] ?? '',
+          );
+        } else {
+          _orgIdSeleccionado =
+              null; // Fuerza al usuario a seleccionar una agencia válida
+          print(
+              '⚠️ Advertencia: La agencia del login ($idObjetivo) no retornó en la lista de AD_Org.');
         }
+
         _cargandoOrgs = false;
       });
     } catch (e) {
       print('Error cargando orgs: $e');
-      setState(() {
-        _organizaciones = [
-          {
-            'id': _orgIdSeleccionado,
-            'Name': 'Agencia (ID: $_orgIdSeleccionado)'
-          }
-        ];
-        _cargandoOrgs = false;
-      });
+      setState(() => _cargandoOrgs = false);
     }
   }
 
@@ -138,36 +134,32 @@ class _DatosGeneralesState extends State<DatosGenerales> {
     setState(() => _cargandoTenants = true);
     try {
       final tenants = await _service.obtenerTenants();
-      print('Tenants cargados: ${tenants.length}');
-      for (final t in tenants) {
-        print('  Tenant → id=${t['id']} name=${t['Name'] ?? t['name']}');
-      }
       setState(() {
         _tenants = tenants;
-        // Si el ID del login no está en la lista, agregar entrada temporal
-        final existe = tenants.any((t) => t['id'] == _clientIdSeleccionado);
-        if (!existe) {
-          _tenants = [
-            {
-              'id': _clientIdSeleccionado,
-              'Name': 'Empresa actual (ID: $_clientIdSeleccionado)'
-            },
-            ...tenants,
-          ];
+
+        // Solo pre-seleccionar si el ID del login EXISTE en la lista devuelta por la API
+        final idObjetivo = widget.model.adClientId?.id ?? widget.loginClientId;
+        final existe = tenants.any((t) => t['id'] == idObjetivo);
+
+        if (existe) {
+          _clientIdSeleccionado = idObjetivo;
+          widget.model.adClientId = IdempiereRef(
+            id: idObjetivo,
+            identifier:
+                tenants.firstWhere((t) => t['id'] == idObjetivo)['Name'] ?? '',
+          );
+        } else {
+          _clientIdSeleccionado =
+              null; // Fuerza al usuario a seleccionar un vendedor válido
+          print(
+              '⚠️ Advertencia: El vendedor del login ($idObjetivo) no retornó en la lista de AD_Client.');
         }
+
         _cargandoTenants = false;
       });
     } catch (e) {
       print('Error cargando tenants: $e');
-      setState(() {
-        _tenants = [
-          {
-            'id': _clientIdSeleccionado,
-            'Name': 'Empresa (ID: $_clientIdSeleccionado)'
-          }
-        ];
-        _cargandoTenants = false;
-      });
+      setState(() => _cargandoTenants = false);
     }
   }
 
