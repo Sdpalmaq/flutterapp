@@ -19,32 +19,23 @@ class _LoginScreenState extends State<LoginScreen>
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
 
-  // Controllers
   final _userController = TextEditingController();
   final _passController = TextEditingController();
 
-  // Estado del flujo
   bool _verificandoToken = true;
   bool _cargando = false;
   bool _ocultarPassword = true;
   String? _error;
 
-  // Paso actual: 0=credenciales, 1=cliente, 2=rol, 3=org
   int _paso = 0;
-
-  // Token preliminar entre pasos
   String? _tokenPreliminar;
 
-  // Listas dinámicas
   List<Map<String, dynamic>> _clientes = [];
   List<Map<String, dynamic>> _roles = [];
   List<Map<String, dynamic>> _organizaciones = [];
-
-  // ✅ Añade estas listas maestras para guardar todo lo que llega en el login inicial
   List<Map<String, dynamic>> _todosLosRoles = [];
   List<Map<String, dynamic>> _todasLasOrgs = [];
 
-  // Selecciones
   Map<String, dynamic>? _clienteSeleccionado;
   Map<String, dynamic>? _rolSeleccionado;
   Map<String, dynamic>? _orgSeleccionada;
@@ -79,9 +70,10 @@ class _LoginScreenState extends State<LoginScreen>
       final token = await _storage.read(key: 'idempiere_token');
       final orgId = await _storage.read(key: 'idempiere_org_id');
       final clientId = await _storage.read(key: 'idempiere_client_id');
+      final roleId =
+          await _storage.read(key: 'idempiere_role_id'); // ✅ leer roleId
 
       if (token != null && orgId != null && clientId != null) {
-        // Verificar que el token sigue válido con una llamada simple
         final response = await http.get(
           Uri.parse(
               '${ApiConfig.baseUrl}/models/${ApiConfig.tableName}?\$top=1'),
@@ -92,7 +84,6 @@ class _LoginScreenState extends State<LoginScreen>
         );
 
         if (response.statusCode == 200 && mounted) {
-          // Token válido → ir directo al formulario
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -100,6 +91,7 @@ class _LoginScreenState extends State<LoginScreen>
                 token: token,
                 orgId: int.parse(orgId),
                 clientId: int.parse(clientId),
+                roleId: int.tryParse(roleId ?? '0') ?? 0, // ✅ pasar roleId
               ),
             ),
           );
@@ -108,7 +100,6 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } catch (_) {}
 
-    // No hay token válido → mostrar login
     setState(() => _verificandoToken = false);
     _animController.forward();
   }
@@ -134,14 +125,11 @@ class _LoginScreenState extends State<LoginScreen>
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         _tokenPreliminar = data['token'];
-
         setState(() {
           _clientes = List<Map<String, dynamic>>.from(data['clients'] ?? []);
-          // ✅ ¡EL SECRETO! Guardamos todo de una vez
           _todosLosRoles = List<Map<String, dynamic>>.from(data['roles'] ?? []);
           _todasLasOrgs =
               List<Map<String, dynamic>>.from(data['organizations'] ?? []);
-
           _paso = 1;
         });
         _animController
@@ -157,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _cargando = false);
   }
 
-// ── Paso 2: Seleccionar cliente → cargar roles ──
+  // ── Paso 2: Seleccionar cliente → cargar roles ──
   Future<void> _seleccionarCliente(Map<String, dynamic> cliente) async {
     setState(() {
       _clienteSeleccionado = cliente;
@@ -166,10 +154,8 @@ class _LoginScreenState extends State<LoginScreen>
     });
 
     try {
-      // ✅ EL SECRETO: El parámetro en la URL es 'client', NO 'clientId'
       final url =
           Uri.parse('${ApiConfig.baseUrl}/auth/roles?client=${cliente['id']}');
-
       final response = await http.get(
         url,
         headers: {
@@ -177,8 +163,6 @@ class _LoginScreenState extends State<LoginScreen>
           'Authorization': 'Bearer $_tokenPreliminar',
         },
       );
-
-      print('RESPUESTA ROLES EXACTA: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -210,10 +194,8 @@ class _LoginScreenState extends State<LoginScreen>
     });
 
     try {
-      // ✅ EL SECRETO 2: Los parámetros son 'client' y 'role', NO terminan en 'Id'
       final url = Uri.parse(
           '${ApiConfig.baseUrl}/auth/organizations?client=${_clienteSeleccionado!['id']}&role=${rol['id']}');
-
       final response = await http.get(
         url,
         headers: {
@@ -242,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _cargando = false);
   }
 
-// ── Paso 4: Seleccionar org → login final ──
+  // ── Paso 4: Seleccionar org → login final ──
   Future<void> _seleccionarOrg(Map<String, dynamic> org) async {
     setState(() {
       _orgSeleccionada = org;
@@ -251,7 +233,6 @@ class _LoginScreenState extends State<LoginScreen>
     });
 
     try {
-      // ✅ AQUÍ SÍ: Para establecer el contexto final vía PUT, el JSON body SÍ usa 'clientId', 'roleId', etc.
       final response = await http.put(
         Uri.parse('${ApiConfig.baseUrl}/auth/tokens'),
         headers: {
@@ -261,16 +242,15 @@ class _LoginScreenState extends State<LoginScreen>
         body: jsonEncode({
           'clientId': _clienteSeleccionado!['id'],
           'roleId': _rolSeleccionado!['id'],
-          'organizationId': org['id']
+          'organizationId': org['id'],
         }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final tokenFinal =
-            data['token']; // ¡Este token es el que usarás para operar!
+        final tokenFinal = data['token'];
 
-        // Guardar sesión
+        // Guardar sesión completa incluyendo roleId ✅
         await _storage.write(key: 'idempiere_token', value: tokenFinal);
         await _storage.write(
             key: 'idempiere_org_id', value: org['id'].toString());
@@ -279,7 +259,7 @@ class _LoginScreenState extends State<LoginScreen>
             value: _clienteSeleccionado!['id'].toString());
         await _storage.write(
             key: 'idempiere_role_id',
-            value: _rolSeleccionado!['id'].toString());
+            value: _rolSeleccionado!['id'].toString()); // ✅ ya estaba
 
         if (mounted) {
           Navigator.pushReplacement(
@@ -289,6 +269,7 @@ class _LoginScreenState extends State<LoginScreen>
                 token: tokenFinal,
                 orgId: org['id'] as int,
                 clientId: _clienteSeleccionado!['id'] as int,
+                roleId: _rolSeleccionado!['id'] as int, // ✅ NUEVO
               ),
             ),
           );
@@ -377,11 +358,8 @@ class _LoginScreenState extends State<LoginScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Encabezado
         _buildEncabezado(),
         const SizedBox(height: 28),
-
-        // Contenido según paso
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           child: KeyedSubtree(
@@ -410,8 +388,6 @@ class _LoginScreenState extends State<LoginScreen>
             },
           ),
         ),
-
-        // Error
         if (_error != null) ...[
           const SizedBox(height: 16),
           Container(
@@ -435,8 +411,6 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
         ],
-
-        // Botón volver (pasos 1-3)
         if (_paso > 0) ...[
           const SizedBox(height: 16),
           TextButton.icon(
@@ -495,7 +469,6 @@ class _LoginScreenState extends State<LoginScreen>
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
-        // Indicador de pasos
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(4, (i) {

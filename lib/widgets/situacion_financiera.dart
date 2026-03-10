@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/kyc_model.dart';
 import '../styles/web_styles.dart';
 import 'responsive_row.dart';
@@ -32,7 +33,6 @@ class _SituacionFinancieraState extends State<SituacionFinanciera>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header con tabs
         Container(
           decoration: BoxDecoration(
             color: WebStyles.primaryBlue,
@@ -44,29 +44,16 @@ class _SituacionFinancieraState extends State<SituacionFinanciera>
             indicatorWeight: 3,
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white54,
-            labelStyle: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
+            labelStyle:
+                const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             tabs: const [
-              Tab(
-                icon: Icon(Icons.looks_one_outlined),
-                text: 'Año 1',
-              ),
-              Tab(
-                icon: Icon(Icons.looks_two_outlined),
-                text: 'Año 2',
-              ),
-              Tab(
-                icon: Icon(Icons.looks_3_outlined),
-                text: 'Año 3',
-              ),
+              Tab(icon: Icon(Icons.looks_one_outlined), text: 'Año 1'),
+              Tab(icon: Icon(Icons.looks_two_outlined), text: 'Año 2'),
+              Tab(icon: Icon(Icons.looks_3_outlined), text: 'Año 3'),
             ],
           ),
         ),
         const SizedBox(height: 16),
-
-        // Contenido de cada tab
         SizedBox(
           height: 520,
           child: TabBarView(
@@ -187,11 +174,9 @@ class _SituacionFinancieraState extends State<SituacionFinanciera>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Badge de año
           Container(
             margin: const EdgeInsets.only(bottom: 16),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               border: Border.all(color: color.withOpacity(0.4)),
@@ -213,84 +198,68 @@ class _SituacionFinancieraState extends State<SituacionFinanciera>
               ],
             ),
           ),
-
-          // Sección Balance
           _buildSectionHeader('Balance General', Icons.account_balance, color),
           const SizedBox(height: 12),
           ResponsiveRow(children: [
             _buildNumberField(
-              label: 'Activos',
-              icon: Icons.trending_up,
-              color: color,
-              initialValue: activos,
-              onSaved: onActivosChanged,
-            ),
+                label: 'Activos',
+                icon: Icons.trending_up,
+                color: color,
+                initialValue: activos,
+                onSaved: onActivosChanged),
             _buildNumberField(
-              label: 'Pasivos',
-              icon: Icons.trending_down,
-              color: color,
-              initialValue: pasivos,
-              onSaved: onPasivosChanged,
-            ),
+                label: 'Pasivos',
+                icon: Icons.trending_down,
+                color: color,
+                initialValue: pasivos,
+                onSaved: onPasivosChanged),
             _buildNumberField(
-              label: 'Patrimonio',
-              icon: Icons.savings,
-              color: color,
-              initialValue: patrimonio,
-              onSaved: onPatrimonioChanged,
-            ),
+                label: 'Patrimonio',
+                icon: Icons.savings,
+                color: color,
+                initialValue: patrimonio,
+                onSaved: onPatrimonioChanged),
           ]),
           const SizedBox(height: 20),
-
-          // Sección Estado de Resultados
-          _buildSectionHeader(
-              'Estado de Resultados', Icons.bar_chart, color),
+          _buildSectionHeader('Estado de Resultados', Icons.bar_chart, color),
           const SizedBox(height: 12),
           ResponsiveRow(children: [
             _buildNumberField(
-              label: 'Ventas',
-              icon: Icons.point_of_sale,
-              color: color,
-              initialValue: ventas,
-              onSaved: onVentasChanged,
-            ),
+                label: 'Ventas',
+                icon: Icons.point_of_sale,
+                color: color,
+                initialValue: ventas,
+                onSaved: onVentasChanged),
             _buildNumberField(
-              label: 'Costo de Ventas',
-              icon: Icons.receipt_long,
-              color: color,
-              initialValue: costoVentas,
-              onSaved: onCostoVentasChanged,
-            ),
+                label: 'Costo de Ventas',
+                icon: Icons.receipt_long,
+                color: color,
+                initialValue: costoVentas,
+                onSaved: onCostoVentasChanged),
           ]),
-          //const SizedBox(height: 16),
           ResponsiveRow(children: [
             _buildNumberField(
-              label: 'Gastos de Operación',
-              icon: Icons.paid,
-              color: color,
-              initialValue: gastos,
-              onSaved: onGastosChanged,
-            ),
+                label: 'Gastos de Operación',
+                icon: Icons.paid,
+                color: color,
+                initialValue: gastos,
+                onSaved: onGastosChanged),
             _buildNumberField(
-              label: 'Utilidad Neta',
-              icon: Icons.monetization_on,
-              color: color,
-              initialValue: utilidad,
-              onSaved: onUtilidadChanged,
-            ),
+                label: 'Utilidad Neta',
+                icon: Icons.monetization_on,
+                color: color,
+                initialValue: utilidad,
+                onSaved: onUtilidadChanged),
           ]),
-          //const SizedBox(height: 16),
           ResponsiveRow(children: [
             _buildNumberField(
-              label: 'Margen Operacional',
-              icon: Icons.percent,
-              color: color,
-              initialValue: margen,
-              onSaved: onMargenChanged,
-            ),
-            const SizedBox(), // espacio vacío
+                label: 'Margen Operacional',
+                icon: Icons.percent,
+                color: color,
+                initialValue: margen,
+                onSaved: onMargenChanged),
+            const SizedBox(),
           ]),
-          //const SizedBox(height: 16),
         ],
       ),
     );
@@ -311,10 +280,7 @@ class _SituacionFinancieraState extends State<SituacionFinanciera>
         Text(
           title,
           style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
+              fontSize: 14, fontWeight: FontWeight.bold, color: color),
         ),
         const SizedBox(width: 10),
         Expanded(child: Divider(color: color.withOpacity(0.3))),
@@ -322,6 +288,9 @@ class _SituacionFinancieraState extends State<SituacionFinanciera>
     );
   }
 
+  // ✅ Campo numérico con:
+  // - inputFormatters: solo permite dígitos, punto decimal y signo negativo
+  // - validator: rechaza texto no numérico y muestra error claro
   Widget _buildNumberField({
     required String label,
     required IconData icon,
@@ -332,7 +301,11 @@ class _SituacionFinancieraState extends State<SituacionFinanciera>
     return TextFormField(
       initialValue: initialValue?.toString() ?? '',
       keyboardType:
-          const TextInputType.numberWithOptions(decimal: true),
+          const TextInputType.numberWithOptions(decimal: true, signed: true),
+      // ✅ Solo permite: dígitos, punto decimal y signo negativo
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
+      ],
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: color, size: 18),
@@ -350,7 +323,15 @@ class _SituacionFinancieraState extends State<SituacionFinanciera>
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: Colors.grey[300]!),
         ),
+        // ✅ Muestra error en rojo debajo del campo
+        errorStyle: const TextStyle(fontSize: 11),
       ),
+      // ✅ Validador: rechaza si no es número válido (y el campo no está vacío)
+      validator: (v) {
+        if (v == null || v.isEmpty) return null; // campo opcional
+        if (double.tryParse(v) == null) return 'Ingrese un número válido';
+        return null;
+      },
       onSaved: onSaved,
       onChanged: onSaved,
     );

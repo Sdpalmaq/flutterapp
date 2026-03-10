@@ -15,6 +15,16 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
   bool get _esRegistroExistente =>
       widget.model.idMutable != null || widget.model.id != null;
 
+  // ✅ Switch cónyuge — se inicializa en true si ya hay datos cargados
+  late bool _tieneConyuge;
+
+  @override
+  void initState() {
+    super.initState();
+    _tieneConyuge = (widget.model.zNombreConyugue?.isNotEmpty ?? false) ||
+        (widget.model.zDocConyugue?.isNotEmpty ?? false);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -29,19 +39,18 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
             initialValue: widget.model.zNombreRespresentanteLegal,
             onSaved: (v) => widget.model.zNombreRespresentanteLegal = v,
           ),
-          // ── Cédula Rep. Legal: bloqueada si el registro ya existe ──
           _buildLockedField(
             label: 'No. Documento',
             icon: Icons.badge,
             required: true,
             value: widget.model.zDocumentoRepLegal ?? '',
             locked: _esRegistroExistente,
-            tooltipMsg:
-                'El documento del Representante Legal no puede modificarse',
+            tooltipMsg: 'El documento del Representante Legal no puede modificarse',
             onSaved: (v) => widget.model.zDocumentoRepLegal = v,
           ),
         ]),
-        // Fila 2 - Género y Correo
+
+        // Fila 2 - Género, Correo y Nacionalidad
         ResponsiveRow(children: [
           DropdownButtonFormField<String>(
             value: widget.model.zGeneroRepLegal,
@@ -50,12 +59,10 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
               prefixIcon: Icon(Icons.wc, color: Colors.grey[600]),
               filled: true,
               fillColor: Colors.grey[50],
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: WebStyles.cyanAccent, width: 2),
+                borderSide: const BorderSide(color: WebStyles.cyanAccent, width: 2),
               ),
             ),
             items: const [
@@ -81,6 +88,7 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
             onSaved: (v) => widget.model.zPaisRepLega = v,
           ),
         ]),
+
         // Fila 3 - Provincia, Ciudad, Cantón
         ResponsiveRow(children: [
           _buildTextField(
@@ -102,6 +110,7 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
             onSaved: (v) => widget.model.zCantonRepLegal = v,
           ),
         ]),
+
         // Fila 4 - Calle, Número e Intersección
         ResponsiveRow(children: [
           _buildTextField(
@@ -123,6 +132,7 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
             onSaved: (v) => widget.model.zInterseccionRepLegal = v,
           ),
         ]),
+
         // Fila 5 - Teléfono
         ResponsiveRow(children: [
           _buildTextField(
@@ -134,73 +144,170 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
           ),
           const SizedBox(),
         ]),
-        const SizedBox(height: 24),
+
+        const SizedBox(height: 8),
+        const Divider(thickness: 1),
+        const SizedBox(height: 8),
 
         // ── SECCIÓN CÓNYUGE ──
-        const Divider(thickness: 1),
-        const Text(
-          'Datos del Cónyuge',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: WebStyles.primaryBlue,
-          ),
-        ),
-        const SizedBox(height: 16),
-        ResponsiveRow(children: [
-          _buildTextField(
-            label: 'Nombre del Cónyuge',
-            icon: Icons.person_outline,
-            initialValue: widget.model.zNombreConyugue,
-            onSaved: (v) => widget.model.zNombreConyugue = v,
-          ),
-          _buildTextField(
-            label: 'Documento del Cónyuge',
-            icon: Icons.badge_outlined,
-            initialValue: widget.model.zDocConyugue,
-            onSaved: (v) => widget.model.zDocConyugue = v,
-          ),
-        ]),
-        const SizedBox(height: 24),
-
-        // ── SECCIÓN PEP ──
-        const Divider(thickness: 1),
-        const Text(
-          'Declaración PEP',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: WebStyles.primaryBlue,
-          ),
-        ),
+        // ✅ Switch que muestra/oculta los campos de cónyuge
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
           decoration: BoxDecoration(
-            color: Colors.grey[50],
-            border: Border.all(color: Colors.grey[300]!),
+            color: _tieneConyuge
+                ? WebStyles.primaryBlue.withOpacity(0.05)
+                : Colors.grey[50],
+            border: Border.all(
+              color: _tieneConyuge
+                  ? WebStyles.primaryBlue
+                  : Colors.grey[300]!,
+            ),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.security, color: WebStyles.primaryBlue),
-                  SizedBox(width: 10),
+                  Icon(
+                    Icons.people,
+                    color: _tieneConyuge
+                        ? WebStyles.primaryBlue
+                        : Colors.grey[400],
+                  ),
+                  const SizedBox(width: 10),
                   Text(
-                    '¿Es Persona Políticamente Expuesta?',
-                    style: TextStyle(fontSize: 15, color: Colors.black87),
+                    '¿El Representante Legal tiene cónyuge?',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: _tieneConyuge
+                          ? WebStyles.primaryBlue
+                          : Colors.black87,
+                      fontWeight: _tieneConyuge
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
                   ),
                 ],
               ),
               Switch(
-                value: widget.model.isPpe,
+                value: _tieneConyuge,
                 activeColor: WebStyles.cyanAccent,
+                activeTrackColor: WebStyles.primaryBlue,
+                onChanged: (v) {
+                  setState(() {
+                    _tieneConyuge = v;
+                    // ✅ Al desactivar se limpian los datos del modelo
+                    if (!v) {
+                      widget.model.zNombreConyugue = null;
+                      widget.model.zDocConyugue = null;
+                    }
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+
+        // ✅ Campos de cónyuge — solo visibles si _tieneConyuge es true
+        if (_tieneConyuge) ...[
+          const SizedBox(height: 16),
+          ResponsiveRow(children: [
+            _buildTextField(
+              label: 'Nombre del Cónyuge',
+              icon: Icons.person_outline,
+              required: true,
+              initialValue: widget.model.zNombreConyugue,
+              onSaved: (v) => widget.model.zNombreConyugue = v,
+            ),
+            _buildTextField(
+              label: 'Documento del Cónyuge',
+              icon: Icons.badge_outlined,
+              required: true,
+              initialValue: widget.model.zDocConyugue,
+              onSaved: (v) => widget.model.zDocConyugue = v,
+            ),
+          ]),
+        ],
+
+        const SizedBox(height: 8),
+        const Divider(thickness: 1),
+        const SizedBox(height: 8),
+
+        // ── SECCIÓN PEP ──
+        // ✅ Texto actualizado con la pregunta exacta del formulario PDF
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          decoration: BoxDecoration(
+            color: widget.model.isPpe
+                ? Colors.orange.withOpacity(0.05)
+                : Colors.grey[50],
+            border: Border.all(
+              color: widget.model.isPpe
+                  ? Colors.orange
+                  : Colors.grey[300]!,
+            ),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.security,
+                color: widget.model.isPpe
+                    ? Colors.orange
+                    : Colors.grey[400],
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '¿Es el Representante Legal o algún Accionista una Persona Políticamente Expuesta (PEP)?',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: widget.model.isPpe
+                        ? Colors.orange[800]
+                        : Colors.black87,
+                    fontWeight: widget.model.isPpe
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
+                ),
+              ),
+              Switch(
+                value: widget.model.isPpe,
+                activeColor: Colors.orange,
+                activeTrackColor: Colors.orange[200],
                 onChanged: (v) => setState(() => widget.model.isPpe = v),
               ),
             ],
           ),
         ),
+
+        // ✅ Aviso de recordatorio cuando PEP está activo
+        if (widget.model.isPpe) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.orange[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange[200]!),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.orange, size: 18),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Recuerde completar la tabla de PEP en la sección "Accionistas y PEP".',
+                    style: TextStyle(fontSize: 13, color: Colors.orange),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
         const SizedBox(height: 16),
 
         // Observaciones
@@ -215,8 +322,7 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  const BorderSide(color: WebStyles.cyanAccent, width: 2),
+              borderSide: const BorderSide(color: WebStyles.cyanAccent, width: 2),
             ),
           ),
           onChanged: (v) => widget.model.zObservacionesKyc = v,
@@ -226,7 +332,6 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
     );
   }
 
-  // Campo bloqueado con candado
   Widget _buildLockedField({
     required String label,
     required IconData icon,

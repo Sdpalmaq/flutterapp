@@ -9,6 +9,7 @@ class DatosGenerales extends StatefulWidget {
   final IdempiereService service;
   final int loginOrgId;
   final int loginClientId;
+  final VoidCallback onTokenExpirado;
 
   const DatosGenerales({
     super.key,
@@ -16,6 +17,7 @@ class DatosGenerales extends StatefulWidget {
     required this.service,
     required this.loginOrgId,
     required this.loginClientId,
+    required this.onTokenExpirado,
   });
 
   @override
@@ -33,14 +35,15 @@ class _DatosGeneralesState extends State<DatosGenerales> {
   late final TextEditingController _taxIdController;
   late final TextEditingController _actividadController;
   late final TextEditingController _correoController;
-  late final TextEditingController _agenciaController;
   late final TextEditingController _objetoSocialController;
   late final TextEditingController _paginaInternetController;
+
+  // ✅ CRÍTICO 1: Controller de fecha movido a initState — evita memory leak y pérdida de valor
+  late final TextEditingController _fechaController;
 
   List<Map<String, dynamic>> _organizaciones = [];
   List<Map<String, dynamic>> _tenants = [];
 
-  // IDs seleccionados — se manejan localmente para evitar conflictos con el dropdown
   int? _orgIdSeleccionado;
   int? _clientIdSeleccionado;
 
@@ -56,29 +59,27 @@ class _DatosGeneralesState extends State<DatosGenerales> {
         TextEditingController(text: widget.model.actividadEconomica ?? '');
     _correoController =
         TextEditingController(text: widget.model.zCorreoCliente ?? '');
-    _agenciaController =
-        TextEditingController(text: widget.model.zAgencia ?? '');
     _objetoSocialController =
         TextEditingController(text: widget.model.zObjetoSocial ?? '');
     _paginaInternetController =
         TextEditingController(text: widget.model.zPaginaInternet ?? '');
 
-    // Inicializar IDs desde el modelo existente o desde el login
+    // ✅ CRÍTICO 1: Fecha inicializada una sola vez aquí
+    _fechaController = TextEditingController(
+      text: widget.model.zFecha != null
+          ? '${widget.model.zFecha!.day}/${widget.model.zFecha!.month}/${widget.model.zFecha!.year}'
+          : '',
+    );
+
     _orgIdSeleccionado = widget.model.adOrgId?.id ?? widget.loginOrgId;
     _clientIdSeleccionado = widget.model.adClientId?.id ?? widget.loginClientId;
 
-    // Preseleccionar en el modelo si no tiene valor
     if (widget.model.adOrgId == null) {
-      widget.model.adOrgId = IdempiereRef(
-        id: widget.loginOrgId,
-        identifier: '',
-      );
+      widget.model.adOrgId = IdempiereRef(id: widget.loginOrgId, identifier: '');
     }
     if (widget.model.adClientId == null) {
-      widget.model.adClientId = IdempiereRef(
-        id: widget.loginClientId,
-        identifier: '',
-      );
+      widget.model.adClientId =
+          IdempiereRef(id: widget.loginClientId, identifier: '');
     }
 
     _cargarOrganizaciones();
@@ -91,9 +92,9 @@ class _DatosGeneralesState extends State<DatosGenerales> {
     _taxIdController.dispose();
     _actividadController.dispose();
     _correoController.dispose();
-    _agenciaController.dispose();
     _objetoSocialController.dispose();
     _paginaInternetController.dispose();
+    _fechaController.dispose(); // ✅ CRÍTICO 1: dispose correcto
     super.dispose();
   }
 
@@ -103,8 +104,6 @@ class _DatosGeneralesState extends State<DatosGenerales> {
       final orgs = await _service.obtenerOrganizaciones();
       setState(() {
         _organizaciones = orgs;
-
-        // Solo pre-seleccionar si el ID del login EXISTE en la lista devuelta por la API
         final idObjetivo = widget.model.adOrgId?.id ?? widget.loginOrgId;
         final existe = orgs.any((o) => o['id'] == idObjetivo);
 
@@ -112,18 +111,16 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           _orgIdSeleccionado = idObjetivo;
           widget.model.adOrgId = IdempiereRef(
             id: idObjetivo,
-            identifier:
-                orgs.firstWhere((o) => o['id'] == idObjetivo)['Name'] ?? '',
+            identifier: orgs.firstWhere((o) => o['id'] == idObjetivo)['Name'] ?? '',
           );
         } else {
-          _orgIdSeleccionado =
-              null; // Fuerza al usuario a seleccionar una agencia válida
-          print(
-              '⚠️ Advertencia: La agencia del login ($idObjetivo) no retornó en la lista de AD_Org.');
+          _orgIdSeleccionado = null;
+          print('⚠️ Agencia del login ($idObjetivo) no está en la lista.');
         }
-
         _cargandoOrgs = false;
       });
+    } on TokenExpiradoException {
+      widget.onTokenExpirado();
     } catch (e) {
       print('Error cargando orgs: $e');
       setState(() => _cargandoOrgs = false);
@@ -136,8 +133,6 @@ class _DatosGeneralesState extends State<DatosGenerales> {
       final tenants = await _service.obtenerTenants();
       setState(() {
         _tenants = tenants;
-
-        // Solo pre-seleccionar si el ID del login EXISTE en la lista devuelta por la API
         final idObjetivo = widget.model.adClientId?.id ?? widget.loginClientId;
         final existe = tenants.any((t) => t['id'] == idObjetivo);
 
@@ -149,14 +144,13 @@ class _DatosGeneralesState extends State<DatosGenerales> {
                 tenants.firstWhere((t) => t['id'] == idObjetivo)['Name'] ?? '',
           );
         } else {
-          _clientIdSeleccionado =
-              null; // Fuerza al usuario a seleccionar un vendedor válido
-          print(
-              '⚠️ Advertencia: El vendedor del login ($idObjetivo) no retornó en la lista de AD_Client.');
+          _clientIdSeleccionado = null;
+          print('⚠️ Tenant del login ($idObjetivo) no está en la lista.');
         }
-
         _cargandoTenants = false;
       });
+    } on TokenExpiradoException {
+      widget.onTokenExpirado();
     } catch (e) {
       print('Error cargando tenants: $e');
       setState(() => _cargandoTenants = false);
@@ -176,7 +170,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           widget.model.actividadEconomica = kyc.actividadEconomica;
           widget.model.tipoActividad = kyc.tipoActividad;
           widget.model.zCorreoCliente = kyc.zCorreoCliente;
-          widget.model.zAgencia = kyc.zAgencia;
+
           widget.model.zObjetoSocial = kyc.zObjetoSocial;
           widget.model.zPaginaInternet = kyc.zPaginaInternet;
           widget.model.zFecha = kyc.zFecha;
@@ -193,8 +187,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           widget.model.zNumeroTrabCliente = kyc.zNumeroTrabCliente;
           widget.model.zInterseccionDomicilio = kyc.zInterseccionDomicilio;
           widget.model.zTelefonoTrabCliente = kyc.zTelefonoTrabCliente;
-          widget.model.zNombrePersonaTransaccion =
-              kyc.zNombrePersonaTransaccion;
+          widget.model.zNombrePersonaTransaccion = kyc.zNombrePersonaTransaccion;
           widget.model.zDocumentoPersonaTransa = kyc.zDocumentoPersonaTransa;
           widget.model.zVinculacionEmpresa = kyc.zVinculacionEmpresa;
           widget.model.zBienTransaccion = kyc.zBienTransaccion;
@@ -225,8 +218,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           widget.model.zGastosDeOperacion3 = kyc.zGastosDeOperacion3;
           widget.model.zUtilidadNeta3 = kyc.zUtilidadNeta3;
           widget.model.zMargenOperacional3 = kyc.zMargenOperacional3;
-          widget.model.zNombreRespresentanteLegal =
-              kyc.zNombreRespresentanteLegal;
+          widget.model.zNombreRespresentanteLegal = kyc.zNombreRespresentanteLegal;
           widget.model.zDocumentoRepLegal = kyc.zDocumentoRepLegal;
           widget.model.zGeneroRepLegal = kyc.zGeneroRepLegal;
           widget.model.zCorreoRepLegal = kyc.zCorreoRepLegal;
@@ -244,12 +236,38 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           widget.model.isPpe = kyc.isPpe;
           if (kyc.id != null) widget.model.idMutable = kyc.id;
 
+          // Actualizar controllers de texto
           _nameController.text = kyc.name ?? '';
           _actividadController.text = kyc.actividadEconomica ?? '';
           _correoController.text = kyc.zCorreoCliente ?? '';
-          _agenciaController.text = kyc.zAgencia ?? '';
           _objetoSocialController.text = kyc.zObjetoSocial ?? '';
           _paginaInternetController.text = kyc.zPaginaInternet ?? '';
+
+          // ✅ CRÍTICO 1: Actualizar _fechaController correctamente
+          if (kyc.zFecha != null) {
+            _fechaController.text =
+                '${kyc.zFecha!.day}/${kyc.zFecha!.month}/${kyc.zFecha!.year}';
+          }
+
+          // ✅ CRÍTICO 3: Sincronizar dropdowns Agencia y Vendedor con el registro cargado por RUC
+          if (kyc.adOrgId != null) {
+            final orgId = kyc.adOrgId!.id;
+            final existeEnLista = _organizaciones.any((o) => o['id'] == orgId);
+            if (existeEnLista) {
+              _orgIdSeleccionado = orgId;
+              widget.model.adOrgId = kyc.adOrgId;
+            }
+            // Si no está en la lista, se mantiene el dropdown actual sin romper nada
+          }
+
+          if (kyc.adClientId != null) {
+            final clientId = kyc.adClientId!.id;
+            final existeEnLista = _tenants.any((t) => t['id'] == clientId);
+            if (existeEnLista) {
+              _clientIdSeleccionado = clientId;
+              widget.model.adClientId = kyc.adClientId;
+            }
+          }
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -266,6 +284,8 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           ),
         );
       }
+    } on TokenExpiradoException {
+      widget.onTokenExpirado();
     } catch (e) {
       print('Error buscarPorRUC: $e');
     }
@@ -289,7 +309,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
               : DropdownButtonFormField<int>(
                   value: _orgIdSeleccionado,
                   decoration: InputDecoration(
-                    labelText: 'Agencia',
+                    labelText: 'Agencia *',
                     prefixIcon: Icon(Icons.store, color: Colors.grey[600]),
                     filled: true,
                     fillColor: Colors.grey[50],
@@ -297,8 +317,8 @@ class _DatosGeneralesState extends State<DatosGenerales> {
                         borderRadius: BorderRadius.circular(10)),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(
-                          color: WebStyles.cyanAccent, width: 2),
+                      borderSide:
+                          const BorderSide(color: WebStyles.cyanAccent, width: 2),
                     ),
                   ),
                   items: _organizaciones
@@ -307,6 +327,8 @@ class _DatosGeneralesState extends State<DatosGenerales> {
                             child: Text(_getNombre(o)),
                           ))
                       .toList(),
+                  // ✅ CRÍTICO 2: Validador — no permite avanzar sin agencia
+                  validator: (v) => v == null ? 'Seleccione una agencia' : null,
                   onChanged: (v) {
                     if (v == null) return;
                     final org = _organizaciones.firstWhere((o) => o['id'] == v);
@@ -326,16 +348,17 @@ class _DatosGeneralesState extends State<DatosGenerales> {
               : DropdownButtonFormField<int>(
                   value: _clientIdSeleccionado,
                   decoration: InputDecoration(
-                    labelText: 'Vendedor',
-                    prefixIcon: Icon(Icons.person_pin, color: Colors.grey[600]),
+                    labelText: 'Vendedor *',
+                    prefixIcon:
+                        Icon(Icons.person_pin, color: Colors.grey[600]),
                     filled: true,
                     fillColor: Colors.grey[50],
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10)),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(
-                          color: WebStyles.cyanAccent, width: 2),
+                      borderSide:
+                          const BorderSide(color: WebStyles.cyanAccent, width: 2),
                     ),
                   ),
                   items: _tenants
@@ -344,6 +367,8 @@ class _DatosGeneralesState extends State<DatosGenerales> {
                             child: Text(_getNombre(t)),
                           ))
                       .toList(),
+                  // ✅ CRÍTICO 2: Validador — no permite avanzar sin vendedor
+                  validator: (v) => v == null ? 'Seleccione un vendedor' : null,
                   onChanged: (v) {
                     if (v == null) return;
                     final tenant = _tenants.firstWhere((t) => t['id'] == v);
@@ -357,11 +382,41 @@ class _DatosGeneralesState extends State<DatosGenerales> {
                   },
                 ),
 
-          // ── FECHA ──
-          _buildDateField(
-            label: 'Fecha',
-            required: true,
-            onSaved: (v) => widget.model.zFecha = v,
+          // ── FECHA ── ✅ CRÍTICO 1: Usa _fechaController de initState
+          TextFormField(
+            controller: _fechaController,
+            readOnly: true,
+            decoration: InputDecoration(
+              labelText: 'Fecha *',
+              prefixIcon:
+                  Icon(Icons.calendar_today, color: Colors.grey[600]),
+              filled: true,
+              fillColor: Colors.grey[50],
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide:
+                    const BorderSide(color: WebStyles.cyanAccent, width: 2),
+              ),
+            ),
+            validator: (v) =>
+                (v == null || v.isEmpty) ? 'Campo requerido' : null,
+            onTap: () async {
+              final date = await showDatePicker(
+                context: context,
+                initialDate: widget.model.zFecha ?? DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (date != null) {
+                setState(() {
+                  widget.model.zFecha = date;
+                  _fechaController.text =
+                      '${date.day}/${date.month}/${date.year}';
+                });
+              }
+            },
           ),
         ]),
 
@@ -384,8 +439,9 @@ class _DatosGeneralesState extends State<DatosGenerales> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(
-                  color:
-                      _esRegistroExistente ? Colors.grey : WebStyles.cyanAccent,
+                  color: _esRegistroExistente
+                      ? Colors.grey
+                      : WebStyles.cyanAccent,
                   width: 2,
                 ),
               ),
@@ -406,7 +462,8 @@ class _DatosGeneralesState extends State<DatosGenerales> {
                       : IconButton(
                           icon: const Icon(Icons.search,
                               color: WebStyles.primaryBlue),
-                          onPressed: () => _buscarPorRUC(_taxIdController.text),
+                          onPressed: () =>
+                              _buscarPorRUC(_taxIdController.text),
                         ),
             ),
             validator: _validarIdentificacionEcuador,
@@ -414,7 +471,6 @@ class _DatosGeneralesState extends State<DatosGenerales> {
                 ? null
                 : (v) {
                     widget.model.taxId = v;
-                    // Solo disparamos la búsqueda si tiene 10 o 13 dígitos
                     if (v.length == 10 || v.length == 13) {
                       _buscarPorRUC(v);
                     }
@@ -534,14 +590,14 @@ class _DatosGeneralesState extends State<DatosGenerales> {
     );
   }
 
-  // Campo placeholder mientras carga
   Widget _buildLoadingField(String label) {
     return InputDecorator(
       decoration: InputDecoration(
         labelText: label,
         filled: true,
         fillColor: Colors.grey[100],
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        border:
+            OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),
       child: Row(
         children: [
@@ -573,10 +629,12 @@ class _DatosGeneralesState extends State<DatosGenerales> {
         prefixIcon: Icon(icon, color: Colors.grey[600]),
         filled: true,
         fillColor: Colors.grey[50],
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        border:
+            OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: WebStyles.cyanAccent, width: 2),
+          borderSide:
+              const BorderSide(color: WebStyles.cyanAccent, width: 2),
         ),
       ),
       validator: required
@@ -587,80 +645,19 @@ class _DatosGeneralesState extends State<DatosGenerales> {
     );
   }
 
-  Widget _buildDateField({
-    required String label,
-    bool required = false,
-    void Function(DateTime?)? onSaved,
-  }) {
-    final controller = TextEditingController(
-      text: widget.model.zFecha != null
-          ? '${widget.model.zFecha!.day}/${widget.model.zFecha!.month}/${widget.model.zFecha!.year}'
-          : '',
-    );
-    return TextFormField(
-      controller: controller,
-      readOnly: true,
-      decoration: InputDecoration(
-        labelText: required ? '$label *' : label,
-        prefixIcon: Icon(Icons.calendar_today, color: Colors.grey[600]),
-        filled: true,
-        fillColor: Colors.grey[50],
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: WebStyles.cyanAccent, width: 2),
-        ),
-      ),
-      validator: required
-          ? (v) => (v == null || v.isEmpty) ? 'Campo requerido' : null
-          : null,
-      onTap: () async {
-        final date = await showDatePicker(
-          context: context,
-          initialDate: widget.model.zFecha ?? DateTime.now(),
-          firstDate: DateTime(2000),
-          lastDate: DateTime(2100),
-        );
-        if (date != null) {
-          controller.text = '${date.day}/${date.month}/${date.year}';
-          onSaved?.call(date);
-        }
-      },
-    );
-  }
-
-  // ✅ NUEVO: Validador estricto para Cédula o RUC ecuatoriano
   String? _validarIdentificacionEcuador(String? v) {
     if (v == null || v.isEmpty) return 'Campo requerido';
-
-    // 1. Debe contener exclusivamente números
-    if (!RegExp(r'^[0-9]+$').hasMatch(v)) {
-      return 'Solo se permiten números';
-    }
-
-    // 2. Validar longitud (10 para Cédula, 13 para RUC)
+    if (!RegExp(r'^[0-9]+$').hasMatch(v)) return 'Solo se permiten números';
     if (v.length != 10 && v.length != 13) {
       return 'Debe tener 10 dígitos (Cédula) o 13 (RUC)';
     }
-
-    // 3. Validar código de provincia (los 2 primeros dígitos deben ser entre 01 y 24, o 30)
     int provincia = int.parse(v.substring(0, 2));
     if (provincia < 1 || (provincia > 24 && provincia != 30)) {
       return 'Código de provincia inválido';
     }
-
-    // 4. Si es un RUC (13 dígitos), validar el sufijo de sucursal
-    if (v.length == 13) {
-      // Por defecto, la matriz del RUC termina en "001"
-      if (!v.endsWith('001')) {
-        return 'El RUC debe terminar en 001 (Matriz)';
-      }
+    if (v.length == 13 && !v.endsWith('001')) {
+      return 'El RUC debe terminar en 001 (Matriz)';
     }
-
-    // Nota: Aquí se podría agregar el algoritmo matemático de "Módulo 10" o "Módulo 11"
-    // para verificar el dígito validador, pero con longitud, números y provincia es
-    // un filtro muy sólido para evitar el 95% de los errores de tipeo.
-
-    return null; // Si pasa todo, es válido
+    return null;
   }
 }

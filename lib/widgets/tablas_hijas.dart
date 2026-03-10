@@ -6,12 +6,14 @@ class TablasHijas extends StatefulWidget {
   final int? personalDataId;
   final bool isPpe;
   final IdempiereService service;
+  final VoidCallback onTokenExpirado; // ✅ callback para token expirado
 
   const TablasHijas({
     super.key,
     required this.personalDataId,
     required this.isPpe,
     required this.service,
+    required this.onTokenExpirado,
   });
 
   @override
@@ -20,7 +22,6 @@ class TablasHijas extends StatefulWidget {
 
 class _TablasHijasState extends State<TablasHijas>
     with SingleTickerProviderStateMixin {
-  //final IdempiereService _service = IdempiereService();
   IdempiereService get _service => widget.service;
   late TabController _tabController;
 
@@ -47,23 +48,31 @@ class _TablasHijasState extends State<TablasHijas>
   }
 
   Future<void> _cargarDatos() async {
+    if (!mounted) return;
     setState(() => _cargando = true);
-    //await _service.login();
-    final accionistas =
-        await _service.obtenerAccionistas(widget.personalDataId!);
-    final clientes = await _service.obtenerClientes(widget.personalDataId!);
-    final peps = await _service.obtenerPEP(widget.personalDataId!);
-    final referencias =
-        await _service.obtenerReferenciasBancarias(widget.personalDataId!);
-    final paises = await _service.obtenerPaises();
-    setState(() {
-      _accionistas = accionistas;
-      _clientes = clientes;
-      _peps = peps;
-      _referencias = referencias;
-      _paises = paises;
-      _cargando = false;
-    });
+    try {
+      final accionistas =
+          await _service.obtenerAccionistas(widget.personalDataId!);
+      final clientes = await _service.obtenerClientes(widget.personalDataId!);
+      final peps = await _service.obtenerPEP(widget.personalDataId!);
+      final referencias =
+          await _service.obtenerReferenciasBancarias(widget.personalDataId!);
+      final paises = await _service.obtenerPaises();
+      if (!mounted) return;
+      setState(() {
+        _accionistas = accionistas;
+        _clientes = clientes;
+        _peps = peps;
+        _referencias = referencias;
+        _paises = paises;
+        _cargando = false;
+      });
+    } on TokenExpiradoException {
+      widget.onTokenExpirado();
+    } catch (e) {
+      print('Error cargando datos tablas hijas: $e');
+      if (mounted) setState(() => _cargando = false);
+    }
   }
 
   @override
@@ -123,6 +132,22 @@ class _TablasHijasState extends State<TablasHijas>
     );
   }
 
+  // ── Helper para ejecutar operaciones del servicio con manejo de token ──
+  Future<void> _ejecutar(Future<void> Function() accion) async {
+    try {
+      await accion();
+    } on TokenExpiradoException {
+      widget.onTokenExpirado();
+    } catch (e) {
+      print('Error operación tablas hijas: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   // ============ ACCIONISTAS ============
   Widget _buildTablaAccionistas() {
     return Column(
@@ -133,9 +158,7 @@ class _TablasHijasState extends State<TablasHijas>
             onPressed: () => _mostrarDialogoAccionista(),
             icon: const Icon(Icons.add),
             label: const Text('Agregar Accionista'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[800],
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
           ),
         ),
         const SizedBox(height: 8),
@@ -163,7 +186,8 @@ class _TablasHijasState extends State<TablasHijas>
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _eliminarAccionista(a),
+                              onPressed: () =>
+                                  _ejecutar(() => _eliminarAccionista(a)),
                             ),
                           ],
                         ),
@@ -186,9 +210,7 @@ class _TablasHijasState extends State<TablasHijas>
             onPressed: () => _mostrarDialogoCliente(),
             icon: const Icon(Icons.add),
             label: const Text('Agregar Cliente'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[800],
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
           ),
         ),
         const SizedBox(height: 8),
@@ -216,7 +238,8 @@ class _TablasHijasState extends State<TablasHijas>
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _eliminarCliente(c),
+                              onPressed: () =>
+                                  _ejecutar(() => _eliminarCliente(c)),
                             ),
                           ],
                         ),
@@ -235,15 +258,29 @@ class _TablasHijasState extends State<TablasHijas>
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.grey[100],
-          border: Border.all(color: Colors.grey),
-          borderRadius: BorderRadius.circular(8),
+          color: Colors.orange[50],
+          border: Border.all(color: Colors.orange[200]!),
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: const Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.info, color: Colors.grey),
-            SizedBox(width: 10),
-            Text('Active el campo PEP en Datos del Representante Legal'),
+            Icon(Icons.lock_outline, color: Colors.orange[400], size: 40),
+            const SizedBox(height: 12),
+            Text(
+              'Sección bloqueada',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange[800],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Esta sección solo está disponible si el Representante Legal\no algún Accionista es una Persona Políticamente Expuesta (PEP).\n\nActive la opción en la pestaña "Representante Legal".',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.orange[700]),
+            ),
           ],
         ),
       );
@@ -257,9 +294,7 @@ class _TablasHijasState extends State<TablasHijas>
             onPressed: () => _mostrarDialogoPEP(),
             icon: const Icon(Icons.add),
             label: const Text('Agregar PEP'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[800],
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
           ),
         ),
         const SizedBox(height: 8),
@@ -286,7 +321,62 @@ class _TablasHijasState extends State<TablasHijas>
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _eliminarPEP(p),
+                              onPressed: () => _ejecutar(() => _eliminarPEP(p)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  // ============ REFERENCIAS BANCARIAS ============
+  Widget _buildTablaReferencias() {
+    return Column(
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: ElevatedButton.icon(
+            onPressed: () => _mostrarDialogoReferencia(),
+            icon: const Icon(Icons.add),
+            label: const Text('Agregar Referencia'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: _referencias.isEmpty
+              ? const Center(
+                  child: Text('No hay referencias bancarias registradas'))
+              : ListView.builder(
+                  itemCount: _referencias.length,
+                  itemBuilder: (context, index) {
+                    final r = _referencias[index];
+                    return Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.account_balance,
+                            color: Colors.blue),
+                        title: Text(r.bankName ?? ''),
+                        subtitle: Text(
+                          'No. Cuenta: ${r.bankAccountNo ?? '-'} | '
+                          'Tipo: ${r.bankAccountType == 'C' ? 'Corriente' : r.bankAccountType == 'S' ? 'Ahorros' : '-'}',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () =>
+                                  _mostrarDialogoReferencia(referencia: r),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () =>
+                                  _ejecutar(() => _eliminarReferencia(r)),
                             ),
                           ],
                         ),
@@ -358,19 +448,20 @@ class _TablasHijasState extends State<TablasHijas>
           ElevatedButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
-              final ok = await _service.guardarAccionista(
-                  model, widget.personalDataId!);
-              if (ok) {
-                final messenger = ScaffoldMessenger.of(context);
-                Navigator.pop(context);
-                _cargarDatos();
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ Accionista guardado'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(context);
+              await _ejecutar(() async {
+                final ok = await _service.guardarAccionista(
+                    model, widget.personalDataId!);
+                if (ok) {
+                  if (mounted) _cargarDatos();
+                  messenger.showSnackBar(
+                    const SnackBar(
+                        content: Text('✅ Accionista guardado'),
+                        backgroundColor: Colors.green),
+                  );
+                }
+              });
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
             child: const Text('Guardar'),
@@ -457,19 +548,20 @@ class _TablasHijasState extends State<TablasHijas>
           ElevatedButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
-              final ok =
-                  await _service.guardarCliente(model, widget.personalDataId!);
-              if (ok) {
-                final messenger = ScaffoldMessenger.of(context);
-                Navigator.pop(context);
-                _cargarDatos();
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ Cliente guardado'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(context);
+              await _ejecutar(() async {
+                final ok = await _service.guardarCliente(
+                    model, widget.personalDataId!);
+                if (ok) {
+                  if (mounted) _cargarDatos();
+                  messenger.showSnackBar(
+                    const SnackBar(
+                        content: Text('✅ Cliente guardado'),
+                        backgroundColor: Colors.green),
+                  );
+                }
+              });
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
             child: const Text('Guardar'),
@@ -534,128 +626,26 @@ class _TablasHijasState extends State<TablasHijas>
           ElevatedButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
-              final ok =
-                  await _service.guardarPEP(model, widget.personalDataId!);
-              if (ok) {
-                final messenger = ScaffoldMessenger.of(context);
-                Navigator.pop(context);
-                _cargarDatos();
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ PEP guardado'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(context);
+              await _ejecutar(() async {
+                final ok =
+                    await _service.guardarPEP(model, widget.personalDataId!);
+                if (ok) {
+                  if (mounted) _cargarDatos();
+                  messenger.showSnackBar(
+                    const SnackBar(
+                        content: Text('✅ PEP guardado'),
+                        backgroundColor: Colors.green),
+                  );
+                }
+              });
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
             child: const Text('Guardar'),
           ),
         ],
       ),
-    );
-  }
-
-  // ============ ELIMINAR ============
-  Future<void> _eliminarAccionista(AccionistaModel a) async {
-    final confirm = await _mostrarConfirmacion('¿Eliminar este accionista?');
-    if (confirm) {
-      await _service.eliminarAccionista(a.id!);
-      _cargarDatos();
-    }
-  }
-
-  Future<void> _eliminarCliente(PrincipalClienteModel c) async {
-    final confirm = await _mostrarConfirmacion('¿Eliminar este cliente?');
-    if (confirm) {
-      await _service.eliminarCliente(c.id!);
-      _cargarDatos();
-    }
-  }
-
-  Future<void> _eliminarPEP(PepModel p) async {
-    final confirm = await _mostrarConfirmacion('¿Eliminar este registro PEP?');
-    if (confirm) {
-      await _service.eliminarPEP(p.id!);
-      _cargarDatos();
-    }
-  }
-
-  Future<bool> _mostrarConfirmacion(String mensaje) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Confirmar'),
-            content: Text(mensaje),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Eliminar'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
-
-  // ============ REFERENCIAS BANCARIAS ============
-  Widget _buildTablaReferencias() {
-    return Column(
-      children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: ElevatedButton.icon(
-            onPressed: () => _mostrarDialogoReferencia(),
-            icon: const Icon(Icons.add),
-            label: const Text('Agregar Referencia'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[800],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: _referencias.isEmpty
-              ? const Center(
-                  child: Text('No hay referencias bancarias registradas'))
-              : ListView.builder(
-                  itemCount: _referencias.length,
-                  itemBuilder: (context, index) {
-                    final r = _referencias[index];
-                    return Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.account_balance,
-                            color: Colors.blue),
-                        title: Text(r.bankName ?? ''),
-                        subtitle: Text(
-                          'No. Cuenta: ${r.bankAccountNo ?? '-'} | '
-                          'Tipo: ${r.bankAccountType == 'C' ? 'Corriente' : r.bankAccountType == 'S' ? 'Ahorros' : '-'}',
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () =>
-                                  _mostrarDialogoReferencia(referencia: r),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _eliminarReferencia(r),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
     );
   }
 
@@ -723,19 +713,20 @@ class _TablasHijasState extends State<TablasHijas>
           ElevatedButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
-              final ok = await _service.guardarReferenciaBancaria(
-                  model, widget.personalDataId!);
-              if (ok) {
-                final messenger = ScaffoldMessenger.of(context);
-                Navigator.pop(context);
-                _cargarDatos();
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ Referencia bancaria guardada'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(context);
+              await _ejecutar(() async {
+                final ok = await _service.guardarReferenciaBancaria(
+                    model, widget.personalDataId!);
+                if (ok) {
+                  if (mounted) _cargarDatos();
+                  messenger.showSnackBar(
+                    const SnackBar(
+                        content: Text('✅ Referencia bancaria guardada'),
+                        backgroundColor: Colors.green),
+                  );
+                }
+              });
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
             child: const Text('Guardar'),
@@ -745,6 +736,31 @@ class _TablasHijasState extends State<TablasHijas>
     );
   }
 
+  // ============ ELIMINAR ============
+  Future<void> _eliminarAccionista(AccionistaModel a) async {
+    final confirm = await _mostrarConfirmacion('¿Eliminar este accionista?');
+    if (confirm) {
+      await _service.eliminarAccionista(a.id!);
+      _cargarDatos();
+    }
+  }
+
+  Future<void> _eliminarCliente(PrincipalClienteModel c) async {
+    final confirm = await _mostrarConfirmacion('¿Eliminar este cliente?');
+    if (confirm) {
+      await _service.eliminarCliente(c.id!);
+      _cargarDatos();
+    }
+  }
+
+  Future<void> _eliminarPEP(PepModel p) async {
+    final confirm = await _mostrarConfirmacion('¿Eliminar este registro PEP?');
+    if (confirm) {
+      await _service.eliminarPEP(p.id!);
+      _cargarDatos();
+    }
+  }
+
   Future<void> _eliminarReferencia(ReferenciaBancariaModel r) async {
     final confirm =
         await _mostrarConfirmacion('¿Eliminar esta referencia bancaria?');
@@ -752,5 +768,27 @@ class _TablasHijasState extends State<TablasHijas>
       await _service.eliminarReferenciaBancaria(r.id!);
       _cargarDatos();
     }
+  }
+
+  Future<bool> _mostrarConfirmacion(String mensaje) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Confirmar'),
+            content: Text(mensaje),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Eliminar'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 }

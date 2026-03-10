@@ -20,14 +20,14 @@ class KycJuridicaModel {
   final String? uid;
 
   IdempiereRef? adOrgId;
-  IdempiereRef? adClientId; // ← agregar
+  IdempiereRef? adClientId;
   String? name;
   String? taxId;
   IdempiereRef? cBpartnerId;
   String? actividadEconomica;
   String? tipoActividad;
   String? zCorreoCliente;
-  String? zAgencia;
+  // ✅ zAgencia eliminado — campo no existe en ZC_BP_PersonalData
   String? zObjetoSocial;
   String? zPaginaInternet;
   DateTime? zFecha;
@@ -103,25 +103,20 @@ class KycJuridicaModel {
   String? zDetallePep;
   bool zIsPJuridica;
 
-  // ─── Snapshot para detectar campos cambiados ───
-  // Se llena cuando se carga un registro existente desde iDempiere.
-  // toJsonUpdate() compara el estado actual contra este snapshot
-  // y solo envía los campos que cambiaron → evita el error
-  // "Cannot update column X" de iDempiere.
   Map<String, dynamic>? _originalJson;
 
   KycJuridicaModel({
     this.id,
     this.uid,
     this.adOrgId,
-    this.adClientId, // ← agregar
+    this.adClientId,
     this.name,
     this.taxId,
     this.cBpartnerId,
     this.actividadEconomica,
     this.tipoActividad,
     this.zCorreoCliente,
-    this.zAgencia,
+    // ✅ zAgencia eliminado del constructor
     this.zObjetoSocial,
     this.zPaginaInternet,
     this.zFecha,
@@ -209,9 +204,9 @@ class KycJuridicaModel {
           ? json['TipoActividad']['id'] as String?
           : json['TipoActividad'] as String?,
       zCorreoCliente: json['zCorreoCliente'],
+      // ✅ zAgencia eliminado de fromJson
       zObjetoSocial: json['ZObjetoSocial'],
       zPaginaInternet: json['ZPaginaInternet'],
-      zAgencia: json['ZAgencia'],
       zFecha: json['ZFecha'] != null ? DateTime.tryParse(json['ZFecha']) : null,
       registroCivil: json['RegistroCivil'] ?? false,
       sri: json['SRI'] ?? false,
@@ -279,29 +274,23 @@ class KycJuridicaModel {
       zIsPJuridica: json['zIsPJuridica'] ?? true,
     );
 
-    // Guardar snapshot del JSON original para detectar cambios en UPDATE
     model._originalJson = Map<String, dynamic>.from(json);
     return model;
   }
 
-  // ─────────────────────────────────────────────
-  // toJsonCreate — para POST (registro nuevo)
-  // Envía todos los campos disponibles
-  // ─────────────────────────────────────────────
   Map<String, dynamic> toJsonCreate() {
     final map = <String, dynamic>{};
 
     if (adOrgId != null) map['AD_Org_ID'] = {'id': adOrgId!.id};
-    if (cBpartnerId != null) map['C_BPartner_ID'] = {'id': cBpartnerId!.id};
-    // En toJsonCreate() de kyc_model.dart, agrega:
     if (adClientId != null) map['AD_Client_ID'] = {'id': adClientId!.id};
+    if (cBpartnerId != null) map['C_BPartner_ID'] = {'id': cBpartnerId!.id};
     if (tipoActividad != null) map['TipoActividad'] = tipoActividad;
     if (name != null) map['Name'] = name;
     if (taxId != null) map['TaxID'] = taxId;
     if (actividadEconomica != null)
       map['ActividadEconomica'] = actividadEconomica;
     if (zCorreoCliente != null) map['zCorreoCliente'] = zCorreoCliente;
-    if (zAgencia != null) map['ZAgencia'] = zAgencia;
+    // ✅ ZAgencia eliminado de toJsonCreate
     if (zObjetoSocial != null) map['ZObjetoSocial'] = zObjetoSocial;
     if (zPaginaInternet != null) map['ZPaginaInternet'] = zPaginaInternet;
     if (zFecha != null) map['ZFecha'] = zFecha!.toIso8601String().split('T')[0];
@@ -393,50 +382,39 @@ class KycJuridicaModel {
     return map;
   }
 
-  // ─────────────────────────────────────────────
-  // toJsonUpdate — para PUT (registro existente)
-  // Solo envía los campos que cambiaron respecto al snapshot original.
-  // Esto evita "Cannot update column X" porque iDempiere solo recibe
-  // los campos que el usuario realmente modificó.
-  // ─────────────────────────────────────────────
   Map<String, dynamic> toJsonUpdate() {
     final map = <String, dynamic>{};
     final orig = _originalJson ?? {};
 
-    // ID siempre requerido en UPDATE
     final registroId = idMutable ?? id;
     if (registroId != null) map['id'] = registroId;
 
-    // Helper: agrega el campo solo si cambió respecto al original
     void addIfChanged(String key, dynamic currentValue, dynamic originalValue) {
       if (currentValue != null && currentValue != originalValue) {
         map[key] = currentValue;
       }
     }
 
-    // Campos de texto y números — comparación directa
     addIfChanged('Name', name, orig['Name']);
     addIfChanged('TaxID', taxId, orig['TaxID']);
     addIfChanged(
         'ActividadEconomica', actividadEconomica, orig['ActividadEconomica']);
 
-    // TipoActividad — lista simple (IN, OT, PR, PU)
     final tipoActOrig = orig['TipoActividad'] is Map
         ? orig['TipoActividad']['id']
         : orig['TipoActividad'];
     addIfChanged('TipoActividad', tipoActividad, tipoActOrig);
+
     addIfChanged('zCorreoCliente', zCorreoCliente, orig['zCorreoCliente']);
-    addIfChanged('ZAgencia', zAgencia, orig['ZAgencia']);
+    // ✅ ZAgencia eliminado de toJsonUpdate
     addIfChanged('ZObjetoSocial', zObjetoSocial, orig['ZObjetoSocial']);
     addIfChanged('ZPaginaInternet', zPaginaInternet, orig['ZPaginaInternet']);
 
-    // Fecha
     final fechaStr =
         zFecha != null ? zFecha!.toIso8601String().split('T')[0] : null;
     final fechaOrig = orig['ZFecha'];
     if (fechaStr != null && fechaStr != fechaOrig) map['ZFecha'] = fechaStr;
 
-    // Booleans de verificación — siempre se incluyen (son seguros para update)
     map['RegistroCivil'] = registroCivil;
     map['SRI'] = sri;
     map['FuncionJudicial'] = funcionJudicial;
@@ -444,7 +422,6 @@ class KycJuridicaModel {
     map['AntecedentesPenales'] = antecedentespenales;
     map['Otros'] = otros;
 
-    // Dirección
     addIfChanged('zProvinciaTrabajoCliente', zProvinciaTrabCliente,
         orig['zProvinciaTrabajoCliente']);
     addIfChanged('zCiudadTrabajoCliente', zCiudadTrabCliente,
@@ -460,26 +437,21 @@ class KycJuridicaModel {
     addIfChanged('zTelefonoTrabajoCliente', zTelefonoTrabCliente,
         orig['zTelefonoTrabajoCliente']);
 
-    // Persona Transacción
     addIfChanged('zNombrePersonaTransaccion', zNombrePersonaTransaccion,
         orig['zNombrePersonaTransaccion']);
-    // zDocumentoPersonaTransa NO se incluye — iDempiere no permite actualizarlo
     addIfChanged('zVinculacionEmpresa', zVinculacionEmpresa,
         orig['zVinculacionEmpresa']);
 
-    // Transacción
     addIfChanged(
         'zBienTransaccion', zBienTransaccion, orig['zBienTransaccion']);
     addIfChanged('zPVPTransaccion', zPvpTransaccion, orig['zPVPTransaccion']);
     addIfChanged('zOrigenFondos', zOrigenFondos, orig['zOrigenFondos']);
 
-    // Forma de pago — iDempiere lo devuelve como objeto, se envía como string
     final formaPagoOrig = orig['PaymentRule'] is Map
         ? orig['PaymentRule']['id']
         : orig['PaymentRule'];
     addIfChanged('PaymentRule', zFormaPago, formaPagoOrig);
 
-    // Financiera Año 1
     addIfChanged('zActivos', zActivos, orig['zActivos']);
     addIfChanged('zPasivos', zPasivos, orig['zPasivos']);
     addIfChanged('zPatrimonio', zPatrimonio, orig['zPatrimonio']);
@@ -491,7 +463,6 @@ class KycJuridicaModel {
     addIfChanged(
         'zMargenOperacional', zMargenOperacional, orig['zMargenOperacional']);
 
-    // Financiera Año 2
     addIfChanged('ZActivos2', zActivos2, orig['ZActivos2']);
     addIfChanged('ZPasivos2', zPasivos2, orig['ZPasivos2']);
     addIfChanged('ZPatrimonio2', zPatrimonio2, orig['ZPatrimonio2']);
@@ -503,7 +474,6 @@ class KycJuridicaModel {
     addIfChanged('ZMargenOperacional2', zMargenOperacional2,
         orig['ZMargenOperacional2']);
 
-    // Financiera Año 3
     addIfChanged('ZActivos3', zActivos3, orig['ZActivos3']);
     addIfChanged('ZPasivos3', zPasivos3, orig['ZPasivos3']);
     addIfChanged('ZPatrimonio3', zPatrimonio3, orig['ZPatrimonio3']);
@@ -515,7 +485,6 @@ class KycJuridicaModel {
     addIfChanged('ZMargenOperacional3', zMargenOperacional3,
         orig['ZMargenOperacional3']);
 
-    // Representante Legal
     addIfChanged('zNombreRespresentanteLegal', zNombreRespresentanteLegal,
         orig['zNombreRespresentanteLegal']);
     addIfChanged(
@@ -538,13 +507,11 @@ class KycJuridicaModel {
     addIfChanged(
         'zObservacionesKYC', zObservacionesKyc, orig['zObservacionesKYC']);
 
-    // Género — iDempiere lo devuelve como objeto
     final generoOrig = orig['zGeneroLegalRep'] is Map
         ? orig['zGeneroLegalRep']['id']
         : orig['zGeneroLegalRep'];
     addIfChanged('zGeneroLegalRep', zGeneroRepLegal, generoOrig);
 
-    // PEP — siempre seguro actualizar
     map['IsPPE'] = isPpe;
     map['zIsRelatedPEP'] = isPpe;
     map['zIsPJuridica'] = true;

@@ -16,12 +16,14 @@ class KycFormScreen extends StatefulWidget {
   final String token;
   final int orgId;
   final int clientId;
+  final int roleId; // ✅ NUEVO
 
   const KycFormScreen({
     super.key,
     required this.token,
     required this.orgId,
     required this.clientId,
+    required this.roleId, // ✅ NUEVO
   });
 
   @override
@@ -39,6 +41,7 @@ class _KycFormScreenState extends State<KycFormScreen> {
       token: widget.token,
       orgId: widget.orgId,
       clientId: widget.clientId,
+      roleId: widget.roleId, // ✅ NUEVO
     );
   }
 
@@ -56,25 +59,46 @@ class _KycFormScreenState extends State<KycFormScreen> {
     {'titulo': 'Accionistas y PEP', 'icono': Icons.group},
   ];
 
-  // ✅ NUEVO: Función que obliga a validar antes de cambiar de pestaña
+  // ✅ Manejo centralizado de token expirado
+  // Llama a este método desde cualquier catch que reciba TokenExpiradoException
+  Future<void> _manejarTokenExpirado() async {
+    if (!mounted) return;
+
+    // Limpiar storage
+    const storage = FlutterSecureStorage();
+    await storage.deleteAll();
+
+    if (!mounted) return;
+
+    // Mostrar aviso y redirigir al login
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('⏱️ Tu sesión expiró. Por favor inicia sesión nuevamente.'),
+        backgroundColor: Colors.orange,
+        duration: Duration(seconds: 3),
+      ),
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+  }
+
   void _irASeccion(int index) {
-    // Si el usuario quiere regresar a un paso anterior, lo dejamos sin validar.
     if (index < _seccionActual) {
       _formKey.currentState?.save();
       setState(() => _seccionActual = index);
       return;
     }
 
-    // Si el usuario quiere AVANZAR, obligamos a validar la pestaña actual
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       setState(() => _seccionActual = index);
     } else {
-      // Si hay error (ej. RUC incompleto), mostramos alerta y NO avanzamos
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content:
-              Text('⚠️ Corrija los errores de esta sección antes de avanzar'),
+          content: Text('⚠️ Corrija los errores de esta sección antes de avanzar'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 2),
         ),
@@ -97,61 +121,68 @@ class _KycFormScreenState extends State<KycFormScreen> {
     setState(() => _guardando = true);
 
     try {
-      //await _service.login();
       final registroId = _model.idMutable ?? _model.id;
 
       if (registroId != null) {
-        final ok =
-            await _service.actualizarKYC(registroId, _model.toJsonUpdate());
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(ok
-                ? '✅ Formulario actualizado exitosamente'
-                : '❌ Error al actualizar'),
-            backgroundColor: ok ? Colors.green : Colors.red,
-          ),
-        );
+        final ok = await _service.actualizarKYC(registroId, _model.toJsonUpdate());
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(ok
+                  ? '✅ Formulario actualizado exitosamente'
+                  : '❌ Error al actualizar'),
+              backgroundColor: ok ? Colors.green : Colors.red,
+            ),
+          );
+        }
       } else {
         final idCreado = await _service.crearKYCConId(_model.toJsonCreate());
         if (idCreado != null) {
           setState(() => _model.idMutable = idCreado);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Formulario guardado exitosamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('✅ Formulario guardado exitosamente'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('❌ Error al guardar el formulario'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('❌ Error al guardar el formulario'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       }
+    } on TokenExpiradoException {
+      // ✅ Token expirado durante guardado → redirigir al login
+      await _manejarTokenExpirado();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
 
-    setState(() => _guardando = false);
+    if (mounted) setState(() => _guardando = false);
   }
 
   Future<void> _cerrarSesion() async {
-    // 1. Destruir token en iDempiere
-    await _service.logout();
+    try {
+      await _service.logout();
+    } catch (_) {}
 
-    // 2. Limpiar almacenamiento local
-    // ✅ CAMBIO AQUÍ: Declarar con final e instanciar con const
-    final storage = const FlutterSecureStorage();
+    const storage = FlutterSecureStorage();
     await storage.deleteAll();
 
-    // 3. Volver al Login
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -160,7 +191,6 @@ class _KycFormScreenState extends State<KycFormScreen> {
     }
   }
 
-  // Abre el drawer en móvil
   void _abrirMenuMovil(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -230,10 +260,6 @@ class _KycFormScreenState extends State<KycFormScreen> {
               trailing: esActual
                   ? const Icon(Icons.check_circle, color: WebStyles.cyanAccent)
                   : null,
-              // onTap: () {
-              //   setState(() => _seccionActual = index);
-              //   Navigator.pop(context);
-              // },
               onTap: () {
                 Navigator.pop(context);
                 _irASeccion(index);
@@ -251,8 +277,7 @@ class _KycFormScreenState extends State<KycFormScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
-        final isTablet =
-            constraints.maxWidth >= 600 && constraints.maxWidth < 900;
+        final isTablet = constraints.maxWidth >= 600 && constraints.maxWidth < 900;
         final isDesktop = constraints.maxWidth >= 900;
 
         return Scaffold(
@@ -267,7 +292,7 @@ class _KycFormScreenState extends State<KycFormScreen> {
             child: SafeArea(
               child: Column(
                 children: [
-                  // ── HEADER ──
+                  // HEADER
                   Padding(
                     padding: EdgeInsets.symmetric(
                       horizontal: isMobile ? 12 : 24,
@@ -275,15 +300,13 @@ class _KycFormScreenState extends State<KycFormScreen> {
                     ),
                     child: Row(
                       children: [
-                        // Botón menú en móvil/tablet
                         if (!isDesktop)
                           IconButton(
                             onPressed: () => _abrirMenuMovil(context),
                             icon: const Icon(Icons.menu, color: Colors.white),
                             tooltip: 'Ver secciones',
                           ),
-                        const Icon(Icons.assignment,
-                            color: Colors.white, size: 28),
+                        const Icon(Icons.assignment, color: Colors.white, size: 28),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -291,15 +314,10 @@ class _KycFormScreenState extends State<KycFormScreen> {
                                 ? 'KYC - P. Jurídica'
                                 : 'Conozca a su Cliente - Persona Jurídica',
                             style: WebStyles.titleStyle.copyWith(
-                              fontSize: isMobile
-                                  ? 16
-                                  : isTablet
-                                      ? 20
-                                      : 26,
+                              fontSize: isMobile ? 16 : isTablet ? 20 : 26,
                             ),
                           ),
                         ),
-                        // Badge estado
                         Container(
                           padding: EdgeInsets.symmetric(
                             horizontal: isMobile ? 8 : 12,
@@ -322,9 +340,7 @@ class _KycFormScreenState extends State<KycFormScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16), // Espaciador
-
-                        // ✅ NUEVO: Botón de Cerrar Sesión
+                        const SizedBox(width: 16),
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.red[400],
@@ -341,7 +357,7 @@ class _KycFormScreenState extends State<KycFormScreen> {
                     ),
                   ),
 
-                  // ── CUERPO ──
+                  // CUERPO
                   Expanded(
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(
@@ -371,11 +387,9 @@ class _KycFormScreenState extends State<KycFormScreen> {
     );
   }
 
-  // ── LAYOUT DESKTOP ──
   Widget _buildDesktopLayout() {
     return Row(
       children: [
-        // Menú lateral
         Container(
           width: 220,
           decoration: const BoxDecoration(
@@ -392,9 +406,7 @@ class _KycFormScreenState extends State<KycFormScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: const BoxDecoration(
                   color: WebStyles.primaryBlue,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                  ),
+                  borderRadius: BorderRadius.only(topLeft: Radius.circular(20)),
                 ),
                 child: const Text(
                   'Secciones',
@@ -411,7 +423,6 @@ class _KycFormScreenState extends State<KycFormScreen> {
                   itemBuilder: (context, index) {
                     final esActual = _seccionActual == index;
                     return InkWell(
-                      //onTap: () => setState(() => _seccionActual = index),
                       onTap: () => _irASeccion(index),
                       child: Container(
                         margin: const EdgeInsets.symmetric(
@@ -453,8 +464,9 @@ class _KycFormScreenState extends State<KycFormScreen> {
                               child: Text(
                                 _secciones[index]['titulo'],
                                 style: TextStyle(
-                                  color:
-                                      esActual ? Colors.white : Colors.black87,
+                                  color: esActual
+                                      ? Colors.white
+                                      : Colors.black87,
                                   fontWeight: esActual
                                       ? FontWeight.bold
                                       : FontWeight.normal,
@@ -478,11 +490,9 @@ class _KycFormScreenState extends State<KycFormScreen> {
     );
   }
 
-  // ── LAYOUT MÓVIL Y TABLET ──
   Widget _buildMobileTabletLayout(bool isTablet) {
     return Column(
       children: [
-        // Mini navegación por chips scrolleable
         Container(
           decoration: const BoxDecoration(
             color: WebStyles.primaryBlue,
@@ -493,7 +503,6 @@ class _KycFormScreenState extends State<KycFormScreen> {
           ),
           child: Column(
             children: [
-              // Título sección actual
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                 child: Row(
@@ -524,33 +533,33 @@ class _KycFormScreenState extends State<KycFormScreen> {
                   ],
                 ),
               ),
-              // Chips de sección
               SizedBox(
                 height: 40,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 6),
                   itemCount: _secciones.length,
                   itemBuilder: (context, index) {
                     final esActual = _seccionActual == index;
                     return GestureDetector(
-                      //onTap: () => setState(() => _seccionActual = index),
                       onTap: () => _irASeccion(index),
                       child: Container(
                         margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          color:
-                              esActual ? WebStyles.cyanAccent : Colors.white24,
+                          color: esActual
+                              ? WebStyles.cyanAccent
+                              : Colors.white24,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           '${index + 1}',
                           style: TextStyle(
-                            color:
-                                esActual ? WebStyles.primaryBlue : Colors.white,
+                            color: esActual
+                                ? WebStyles.primaryBlue
+                                : Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -560,7 +569,6 @@ class _KycFormScreenState extends State<KycFormScreen> {
                   },
                 ),
               ),
-              // Barra de progreso
               LinearProgressIndicator(
                 value: (_seccionActual + 1) / _secciones.length,
                 backgroundColor: Colors.white24,
@@ -577,20 +585,16 @@ class _KycFormScreenState extends State<KycFormScreen> {
     );
   }
 
-  // ── CONTENIDO COMPARTIDO ──
   Widget _buildContenido({bool isMobile = false}) {
     return Column(
       children: [
-        // Header sección (solo desktop)
         if (!isMobile)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
               color: WebStyles.primaryBlue,
-              borderRadius: BorderRadius.only(
-                topRight: Radius.circular(20),
-              ),
+              borderRadius: BorderRadius.only(topRight: Radius.circular(20)),
             ),
             child: Row(
               children: [
@@ -628,7 +632,6 @@ class _KycFormScreenState extends State<KycFormScreen> {
             ),
             minHeight: 4,
           ),
-        // Formulario
         Expanded(
           child: Form(
             key: _formKey,
@@ -640,7 +643,6 @@ class _KycFormScreenState extends State<KycFormScreen> {
                     child: _buildSeccion(),
                   ),
                 ),
-                // Botones de navegación
                 Container(
                   padding: EdgeInsets.all(isMobile ? 10 : 16),
                   decoration: BoxDecoration(
@@ -666,7 +668,8 @@ class _KycFormScreenState extends State<KycFormScreen> {
                     children: [
                       if (_seccionActual > 0)
                         ElevatedButton.icon(
-                          onPressed: () => setState(() => _seccionActual--),
+                          onPressed: () =>
+                              setState(() => _seccionActual--),
                           icon: const Icon(Icons.arrow_back, size: 18),
                           label: Text(isMobile ? '' : 'Anterior'),
                           style: ElevatedButton.styleFrom(
@@ -720,8 +723,8 @@ class _KycFormScreenState extends State<KycFormScreen> {
                           const SizedBox(width: 8),
                           if (_seccionActual < _secciones.length - 1)
                             ElevatedButton.icon(
-                              // onPressed: () => setState(() => _seccionActual++),
-                              onPressed: () => _irASeccion(_seccionActual + 1),
+                              onPressed: () =>
+                                  _irASeccion(_seccionActual + 1),
                               icon: const Icon(Icons.arrow_forward, size: 18),
                               label: Text(isMobile ? '' : 'Siguiente'),
                               style: ElevatedButton.styleFrom(
@@ -753,9 +756,11 @@ class _KycFormScreenState extends State<KycFormScreen> {
     switch (_seccionActual) {
       case 0:
         return DatosGenerales(
-          model: _model, service: _service,
-          loginOrgId: widget.orgId, // ← agregar
+          model: _model,
+          service: _service,
+          loginOrgId: widget.orgId,
           loginClientId: widget.clientId,
+          onTokenExpirado: _manejarTokenExpirado,
         );
       case 1:
         return VerificacionInfo(model: _model);
@@ -772,6 +777,7 @@ class _KycFormScreenState extends State<KycFormScreen> {
           personalDataId: _model.idMutable ?? _model.id,
           isPpe: _model.isPpe,
           service: _service,
+          onTokenExpirado: _manejarTokenExpirado,
         );
       default:
         return const SizedBox();
