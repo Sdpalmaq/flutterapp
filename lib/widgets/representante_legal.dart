@@ -39,13 +39,11 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
             initialValue: widget.model.zNombreRespresentanteLegal,
             onSaved: (v) => widget.model.zNombreRespresentanteLegal = v,
           ),
-          _buildLockedField(
-            label: 'No. Documento',
+          _buildTextField(
+            label: 'RUC / Cédula',
             icon: Icons.badge,
             required: true,
-            value: widget.model.zDocumentoRepLegal ?? '',
-            locked: _esRegistroExistente,
-            tooltipMsg: 'El documento del Representante Legal no puede modificarse',
+            initialValue: widget.model.zDocumentoRepLegal,
             onSaved: (v) => widget.model.zDocumentoRepLegal = v,
           ),
         ]),
@@ -59,10 +57,12 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
               prefixIcon: Icon(Icons.wc, color: Colors.grey[600]),
               filled: true,
               fillColor: Colors.grey[50],
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: WebStyles.cyanAccent, width: 2),
+                borderSide:
+                    const BorderSide(color: WebStyles.cyanAccent, width: 2),
               ),
             ),
             items: const [
@@ -158,9 +158,7 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
                 ? WebStyles.primaryBlue.withOpacity(0.05)
                 : Colors.grey[50],
             border: Border.all(
-              color: _tieneConyuge
-                  ? WebStyles.primaryBlue
-                  : Colors.grey[300]!,
+              color: _tieneConyuge ? WebStyles.primaryBlue : Colors.grey[300]!,
             ),
             borderRadius: BorderRadius.circular(10),
           ),
@@ -183,9 +181,8 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
                       color: _tieneConyuge
                           ? WebStyles.primaryBlue
                           : Colors.black87,
-                      fontWeight: _tieneConyuge
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+                      fontWeight:
+                          _tieneConyuge ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -243,9 +240,7 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
                 ? Colors.orange.withOpacity(0.05)
                 : Colors.grey[50],
             border: Border.all(
-              color: widget.model.isPpe
-                  ? Colors.orange
-                  : Colors.grey[300]!,
+              color: widget.model.isPpe ? Colors.orange : Colors.grey[300]!,
             ),
             borderRadius: BorderRadius.circular(10),
           ),
@@ -254,9 +249,7 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
             children: [
               Icon(
                 Icons.security,
-                color: widget.model.isPpe
-                    ? Colors.orange
-                    : Colors.grey[400],
+                color: widget.model.isPpe ? Colors.orange : Colors.grey[400],
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -322,7 +315,8 @@ class _RepresentanteLegalState extends State<RepresentanteLegal> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: WebStyles.cyanAccent, width: 2),
+              borderSide:
+                  const BorderSide(color: WebStyles.cyanAccent, width: 2),
             ),
           ),
           onChanged: (v) => widget.model.zObservacionesKyc = v,

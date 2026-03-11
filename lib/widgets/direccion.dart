@@ -15,9 +15,11 @@ class Direccion extends StatelessWidget {
         // Fila 1 - Provincia, Ciudad, Cantón
         ResponsiveRow(children: [
           _buildTextField(
+            
             label: 'Provincia', icon: Icons.map,
             onSaved: (v) => model.zProvinciaTrabCliente = v,
             initialValue: model.zProvinciaTrabCliente,
+            
           ),
           _buildTextField(
             label: 'Ciudad', icon: Icons.location_city,
@@ -88,6 +90,8 @@ class Direccion extends StatelessWidget {
     void Function(String?)? onSaved,
   }) {
     return TextFormField(
+      enableSuggestions: true,
+      autocorrect: true,
       initialValue: initialValue,
       keyboardType: keyboardType,
       decoration: InputDecoration(

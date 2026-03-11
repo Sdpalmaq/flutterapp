@@ -6,7 +6,9 @@ class TablasHijas extends StatefulWidget {
   final int? personalDataId;
   final bool isPpe;
   final IdempiereService service;
-  final VoidCallback onTokenExpirado; // ✅ callback para token expirado
+  final VoidCallback onTokenExpirado;
+  // ✅ Notifica al padre si las tablas obligatorias están completas
+  final void Function(bool validas)? onValidacionChanged;
 
   const TablasHijas({
     super.key,
@@ -14,6 +16,7 @@ class TablasHijas extends StatefulWidget {
     required this.isPpe,
     required this.service,
     required this.onTokenExpirado,
+    this.onValidacionChanged,
   });
 
   @override
@@ -67,6 +70,8 @@ class _TablasHijasState extends State<TablasHijas>
         _paises = paises;
         _cargando = false;
       });
+      // ✅ Notificar validación al padre después de cargar
+      _notificarValidacion();
     } on TokenExpiradoException {
       widget.onTokenExpirado();
     } catch (e) {
@@ -74,6 +79,25 @@ class _TablasHijasState extends State<TablasHijas>
       if (mounted) setState(() => _cargando = false);
     }
   }
+
+  // ✅ Valida que las tablas obligatorias tengan al menos 1 registro
+  // Si isPpe está activo, la tabla PEP también es obligatoria
+  void _notificarValidacion() {
+    final tablasBase = _accionistas.isNotEmpty &&
+        _clientes.isNotEmpty &&
+        _referencias.isNotEmpty;
+    final pepValido = !widget.isPpe || _peps.isNotEmpty;
+    widget.onValidacionChanged?.call(tablasBase && pepValido);
+  }
+
+  // ── Suma porcentajes excluyendo el registro en edición ──
+  double _sumaAccionistas({int? excludeId}) => _accionistas
+      .where((a) => a.id != excludeId)
+      .fold(0.0, (sum, a) => sum + (a.zPorcentajeParticipacion ?? 0));
+
+  double _sumaClientes({int? excludeId}) => _clientes
+      .where((c) => c.id != excludeId)
+      .fold(0.0, (sum, c) => sum + (c.zPorcentajeVentas ?? 0));
 
   @override
   Widget build(BuildContext context) {
@@ -89,9 +113,11 @@ class _TablasHijasState extends State<TablasHijas>
           children: [
             Icon(Icons.warning, color: Colors.orange),
             SizedBox(width: 10),
-            Text(
-              'Primero guarde el formulario principal para poder\nagregar accionistas, clientes y PEP.',
-              style: TextStyle(color: Colors.orange),
+            Expanded(
+              child: Text(
+                'Primero guarde el formulario principal para poder\nagregar accionistas, clientes y referencias bancarias.',
+                style: TextStyle(color: Colors.orange),
+              ),
             ),
           ],
         ),
@@ -100,16 +126,24 @@ class _TablasHijasState extends State<TablasHijas>
 
     return Column(
       children: [
+        // ✅ Indicador global de estado de las tablas
+        _buildIndicadorEstado(),
+        const SizedBox(height: 8),
         TabBar(
           controller: _tabController,
           labelColor: Colors.blue[800],
           unselectedLabelColor: Colors.grey,
           indicatorColor: Colors.blue[800],
-          tabs: const [
-            Tab(text: 'Accionistas'),
-            Tab(text: 'Principales Clientes'),
-            Tab(text: 'Referencias Bancarias'),
-            Tab(text: 'PEP'),
+          isScrollable: true,
+          tabs: [
+            _buildTab('Accionistas', _accionistas.isNotEmpty),
+            _buildTab('Principales Clientes', _clientes.isNotEmpty),
+            _buildTab('Referencias Bancarias', _referencias.isNotEmpty),
+            _buildTab(
+              'PEP',
+              !widget.isPpe || _peps.isNotEmpty,
+              obligatorio: widget.isPpe,
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -132,6 +166,76 @@ class _TablasHijasState extends State<TablasHijas>
     );
   }
 
+  // ✅ Tab con indicador de completo/pendiente
+  Widget _buildTab(String label, bool completo, {bool obligatorio = true}) {
+    return Tab(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          const SizedBox(width: 4),
+          if (obligatorio)
+            Icon(
+              completo ? Icons.check_circle : Icons.error_outline,
+              size: 14,
+              color: completo ? Colors.green : Colors.orange,
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Barra de estado global en la parte superior
+  Widget _buildIndicadorEstado() {
+    final faltantes = <String>[];
+    if (_accionistas.isEmpty) faltantes.add('accionistas');
+    if (_clientes.isEmpty) faltantes.add('clientes');
+    if (_referencias.isEmpty) faltantes.add('referencias bancarias');
+    if (widget.isPpe && _peps.isEmpty) faltantes.add('registros PEP');
+
+    if (faltantes.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.green[50],
+          border: Border.all(color: Colors.green[300]!),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green, size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Todas las secciones requeridas están completas.',
+              style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.orange[50],
+        border: Border.all(color: Colors.orange[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.orange[700], size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Faltan registros obligatorios: ${faltantes.join(', ')}.',
+              style: TextStyle(color: Colors.orange[800], fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Helper para ejecutar operaciones del servicio con manejo de token ──
   Future<void> _ejecutar(Future<void> Function() accion) async {
     try {
@@ -150,21 +254,28 @@ class _TablasHijasState extends State<TablasHijas>
 
   // ============ ACCIONISTAS ============
   Widget _buildTablaAccionistas() {
+    final sumaAcc = _sumaAccionistas();
     return Column(
       children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: ElevatedButton.icon(
-            onPressed: () => _mostrarDialogoAccionista(),
-            icon: const Icon(Icons.add),
-            label: const Text('Agregar Accionista'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
+        // Indicador de porcentaje total
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildIndicadorPorcentaje(sumaAcc, 'Participación total'),
+              ElevatedButton.icon(
+                onPressed: () => _mostrarDialogoAccionista(),
+                icon: const Icon(Icons.add),
+                label: const Text('Agregar Accionista'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
         Expanded(
           child: _accionistas.isEmpty
-              ? const Center(child: Text('No hay accionistas registrados'))
+              ? _buildVacioObligatorio('Debe registrar al menos un accionista')
               : ListView.builder(
                   itemCount: _accionistas.length,
                   itemBuilder: (context, index) {
@@ -202,21 +313,27 @@ class _TablasHijasState extends State<TablasHijas>
 
   // ============ PRINCIPALES CLIENTES ============
   Widget _buildTablaClientes() {
+    final sumaCli = _sumaClientes();
     return Column(
       children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: ElevatedButton.icon(
-            onPressed: () => _mostrarDialogoCliente(),
-            icon: const Icon(Icons.add),
-            label: const Text('Agregar Cliente'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildIndicadorPorcentaje(sumaCli, 'Ventas total'),
+              ElevatedButton.icon(
+                onPressed: () => _mostrarDialogoCliente(),
+                icon: const Icon(Icons.add),
+                label: const Text('Agregar Cliente'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
         Expanded(
           child: _clientes.isEmpty
-              ? const Center(child: Text('No hay clientes registrados'))
+              ? _buildVacioObligatorio('Debe registrar al menos un cliente principal')
               : ListView.builder(
                   itemCount: _clientes.length,
                   itemBuilder: (context, index) {
@@ -277,7 +394,9 @@ class _TablasHijasState extends State<TablasHijas>
             ),
             const SizedBox(height: 8),
             Text(
-              'Esta sección solo está disponible si el Representante Legal\no algún Accionista es una Persona Políticamente Expuesta (PEP).\n\nActive la opción en la pestaña "Representante Legal".',
+              'Esta sección solo está disponible si el Representante Legal\n'
+              'o algún Accionista es una Persona Políticamente Expuesta (PEP).\n\n'
+              'Active la opción en la pestaña "Representante Legal".',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: Colors.orange[700]),
             ),
@@ -288,6 +407,29 @@ class _TablasHijasState extends State<TablasHijas>
 
     return Column(
       children: [
+        // ✅ Aviso de que PEP es obligatorio cuando está activado
+        if (_peps.isEmpty)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.red[50],
+              border: Border.all(color: Colors.red[300]!),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.red, size: 18),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Debe registrar al menos un PEP porque marcó que existe una Persona Políticamente Expuesta.',
+                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+          ),
         Align(
           alignment: Alignment.centerRight,
           child: ElevatedButton.icon(
@@ -300,7 +442,7 @@ class _TablasHijasState extends State<TablasHijas>
         const SizedBox(height: 8),
         Expanded(
           child: _peps.isEmpty
-              ? const Center(child: Text('No hay registros PEP'))
+              ? _buildVacioObligatorio('Debe registrar al menos un registro PEP')
               : ListView.builder(
                   itemCount: _peps.length,
                   itemBuilder: (context, index) {
@@ -309,7 +451,7 @@ class _TablasHijasState extends State<TablasHijas>
                       child: ListTile(
                         title: Text(p.zNombresApellidos ?? ''),
                         subtitle: Text(
-                          'Cédula: ${p.zCedula ?? '-'} | '
+                          'RUC/Cédula: ${p.zCedula ?? '-'} | '
                           'Vinculación: ${p.zVinculacion ?? '-'}',
                         ),
                         trailing: Row(
@@ -350,8 +492,7 @@ class _TablasHijasState extends State<TablasHijas>
         const SizedBox(height: 8),
         Expanded(
           child: _referencias.isEmpty
-              ? const Center(
-                  child: Text('No hay referencias bancarias registradas'))
+              ? _buildVacioObligatorio('Debe registrar al menos una referencia bancaria')
               : ListView.builder(
                   itemCount: _referencias.length,
                   itemBuilder: (context, index) {
@@ -389,7 +530,56 @@ class _TablasHijasState extends State<TablasHijas>
     );
   }
 
+  // ── Widgets helpers ──
+
+  /// Mensaje cuando una tabla obligatoria está vacía
+  Widget _buildVacioObligatorio(String mensaje) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.orange[400], size: 40),
+          const SizedBox(height: 8),
+          Text(
+            mensaje,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.orange,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Pastilla de porcentaje total (verde=100%, naranja=<100%, rojo=>100%)
+  Widget _buildIndicadorPorcentaje(double suma, String etiqueta) {
+    final color = suma == 100
+        ? Colors.green
+        : suma > 100
+            ? Colors.red
+            : Colors.orange;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        border: Border.all(color: color),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        '$etiqueta: ${suma.toStringAsFixed(1)}% / 100%',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+
   // ============ DIÁLOGOS ============
+
   Future<void> _mostrarDialogoAccionista({AccionistaModel? accionista}) async {
     final model = accionista ?? AccionistaModel();
     final formKey = GlobalKey<FormState>();
@@ -426,15 +616,29 @@ class _TablasHijasState extends State<TablasHijas>
                   onChanged: (v) => model.zNacionalidad = v,
                 ),
                 const SizedBox(height: 12),
+                // ✅ Porcentaje con validación de suma <= 100%
                 TextFormField(
                   initialValue: model.zPorcentajeParticipacion?.toString(),
                   decoration: const InputDecoration(
-                    labelText: 'Porcentaje de Participación %',
+                    labelText: 'Porcentaje de Participación *',
                     border: OutlineInputBorder(),
+                    suffixText: '%',
                   ),
                   keyboardType: TextInputType.number,
                   onChanged: (v) =>
                       model.zPorcentajeParticipacion = double.tryParse(v),
+                  validator: (v) {
+                    final val = double.tryParse(v ?? '');
+                    if (val == null || val <= 0) {
+                      return 'Ingrese un porcentaje mayor a 0';
+                    }
+                    final sumaExistente =
+                        _sumaAccionistas(excludeId: accionista?.id);
+                    if (sumaExistente + val > 100) {
+                      return 'Supera el 100% (disponible: ${(100 - sumaExistente).toStringAsFixed(1)}%)';
+                    }
+                    return null;
+                  },
                 ),
               ],
             ),
@@ -497,15 +701,29 @@ class _TablasHijasState extends State<TablasHijas>
                   onChanged: (v) => model.zNombre = v,
                 ),
                 const SizedBox(height: 12),
+                // ✅ Porcentaje con validación de suma <= 100%
                 TextFormField(
                   initialValue: model.zPorcentajeVentas?.toString(),
                   decoration: const InputDecoration(
-                    labelText: 'Porcentaje de Ventas %',
+                    labelText: 'Porcentaje de Ventas *',
                     border: OutlineInputBorder(),
+                    suffixText: '%',
                   ),
                   keyboardType: TextInputType.number,
                   onChanged: (v) =>
                       model.zPorcentajeVentas = double.tryParse(v),
+                  validator: (v) {
+                    final val = double.tryParse(v ?? '');
+                    if (val == null || val <= 0) {
+                      return 'Ingrese un porcentaje mayor a 0';
+                    }
+                    final sumaExistente =
+                        _sumaClientes(excludeId: cliente?.id);
+                    if (sumaExistente + val > 100) {
+                      return 'Supera el 100% (disponible: ${(100 - sumaExistente).toStringAsFixed(1)}%)';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<int>(
@@ -597,10 +815,11 @@ class _TablasHijasState extends State<TablasHijas>
                   onChanged: (v) => model.zNombresApellidos = v,
                 ),
                 const SizedBox(height: 12),
+                // ✅ Renombrado de "Cédula" a "RUC / Cédula" porque es persona jurídica
                 TextFormField(
                   initialValue: model.zCedula,
                   decoration: const InputDecoration(
-                    labelText: 'Cédula',
+                    labelText: 'RUC / Cédula',
                     border: OutlineInputBorder(),
                   ),
                   onChanged: (v) => model.zCedula = v,
@@ -741,7 +960,7 @@ class _TablasHijasState extends State<TablasHijas>
     final confirm = await _mostrarConfirmacion('¿Eliminar este accionista?');
     if (confirm) {
       await _service.eliminarAccionista(a.id!);
-      _cargarDatos();
+      if (mounted) _cargarDatos();
     }
   }
 
@@ -749,7 +968,7 @@ class _TablasHijasState extends State<TablasHijas>
     final confirm = await _mostrarConfirmacion('¿Eliminar este cliente?');
     if (confirm) {
       await _service.eliminarCliente(c.id!);
-      _cargarDatos();
+      if (mounted) _cargarDatos();
     }
   }
 
@@ -757,7 +976,7 @@ class _TablasHijasState extends State<TablasHijas>
     final confirm = await _mostrarConfirmacion('¿Eliminar este registro PEP?');
     if (confirm) {
       await _service.eliminarPEP(p.id!);
-      _cargarDatos();
+      if (mounted) _cargarDatos();
     }
   }
 
@@ -766,7 +985,7 @@ class _TablasHijasState extends State<TablasHijas>
         await _mostrarConfirmacion('¿Eliminar esta referencia bancaria?');
     if (confirm) {
       await _service.eliminarReferenciaBancaria(r.id!);
-      _cargarDatos();
+      if (mounted) _cargarDatos();
     }
   }
 

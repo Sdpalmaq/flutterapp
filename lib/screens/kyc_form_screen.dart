@@ -230,6 +230,12 @@ class _KycFormScreenState extends State<KycFormScreen> {
     }
   }
 
+  // ✅ Recibe notificación de TablasHijas sobre si las tablas obligatorias están completas
+  bool _tablasValidas = false;
+  void _onTablasValidadas(bool validas) {
+    if (_tablasValidas != validas) setState(() => _tablasValidas = validas);
+  }
+
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -239,6 +245,24 @@ class _KycFormScreenState extends State<KycFormScreen> {
         ),
       );
       return;
+    }
+
+    // ✅ Validar tablas hijas obligatorias (al menos 1 accionista, cliente, referencia; PEP si isPpe)
+    if (_model.idMutable != null || _model.id != null) {
+      if (!_tablasValidas) {
+        setState(() => _seccionActual = 6);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              '⚠️ Complete las secciones obligatorias: accionistas, clientes principales y referencias bancarias.'
+              ' Si marcó PEP, también debe llenar esa tabla.',
+            ),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 5),
+          ),
+        );
+        return;
+      }
     }
 
     _formKey.currentState!.save();
@@ -931,6 +955,7 @@ class _KycFormScreenState extends State<KycFormScreen> {
           isPpe: _model.isPpe,
           service: _service,
           onTokenExpirado: _manejarTokenExpirado,
+          onValidacionChanged: _onTablasValidadas, // ✅ validación obligatoria
         );
       default:
         return const SizedBox();

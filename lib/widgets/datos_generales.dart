@@ -555,7 +555,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
                 DropdownMenuItem(value: 'OT', child: Text('Otros')),
                 DropdownMenuItem(value: 'PR', child: Text('Empleado Privado')),
                 DropdownMenuItem(
-                    value: 'PU', child: Text('Funcionario Publico')),
+                    value: 'PU', child: Text('Funcionario Público')),
               ],
               onChanged: (v) {
                 setDropState(() => widget.model.tipoActividad = v);
@@ -690,8 +690,6 @@ class _DatosGeneralesState extends State<DatosGenerales> {
       onChanged: onSaved,
     );
   }
-
- 
 
   String? _validarIdentificacionEcuador(String? v) {
     if (v == null || v.isEmpty) return 'Campo requerido';
