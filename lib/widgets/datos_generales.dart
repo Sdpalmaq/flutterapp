@@ -75,7 +75,8 @@ class _DatosGeneralesState extends State<DatosGenerales> {
     _clientIdSeleccionado = widget.model.adClientId?.id ?? widget.loginClientId;
 
     if (widget.model.adOrgId == null) {
-      widget.model.adOrgId = IdempiereRef(id: widget.loginOrgId, identifier: '');
+      widget.model.adOrgId =
+          IdempiereRef(id: widget.loginOrgId, identifier: '');
     }
     if (widget.model.adClientId == null) {
       widget.model.adClientId =
@@ -111,7 +112,8 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           _orgIdSeleccionado = idObjetivo;
           widget.model.adOrgId = IdempiereRef(
             id: idObjetivo,
-            identifier: orgs.firstWhere((o) => o['id'] == idObjetivo)['Name'] ?? '',
+            identifier:
+                orgs.firstWhere((o) => o['id'] == idObjetivo)['Name'] ?? '',
           );
         } else {
           _orgIdSeleccionado = null;
@@ -187,7 +189,8 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           widget.model.zNumeroTrabCliente = kyc.zNumeroTrabCliente;
           widget.model.zInterseccionDomicilio = kyc.zInterseccionDomicilio;
           widget.model.zTelefonoTrabCliente = kyc.zTelefonoTrabCliente;
-          widget.model.zNombrePersonaTransaccion = kyc.zNombrePersonaTransaccion;
+          widget.model.zNombrePersonaTransaccion =
+              kyc.zNombrePersonaTransaccion;
           widget.model.zDocumentoPersonaTransa = kyc.zDocumentoPersonaTransa;
           widget.model.zVinculacionEmpresa = kyc.zVinculacionEmpresa;
           widget.model.zBienTransaccion = kyc.zBienTransaccion;
@@ -218,7 +221,8 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           widget.model.zGastosDeOperacion3 = kyc.zGastosDeOperacion3;
           widget.model.zUtilidadNeta3 = kyc.zUtilidadNeta3;
           widget.model.zMargenOperacional3 = kyc.zMargenOperacional3;
-          widget.model.zNombreRespresentanteLegal = kyc.zNombreRespresentanteLegal;
+          widget.model.zNombreRespresentanteLegal =
+              kyc.zNombreRespresentanteLegal;
           widget.model.zDocumentoRepLegal = kyc.zDocumentoRepLegal;
           widget.model.zGeneroRepLegal = kyc.zGeneroRepLegal;
           widget.model.zCorreoRepLegal = kyc.zCorreoRepLegal;
@@ -306,81 +310,96 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           // ── AGENCIA (AD_Org_ID) ──
           _cargandoOrgs
               ? _buildLoadingField('Agencia')
-              : DropdownButtonFormField<int>(
-                  value: _orgIdSeleccionado,
-                  decoration: InputDecoration(
-                    labelText: 'Agencia *',
-                    prefixIcon: Icon(Icons.store, color: Colors.grey[600]),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                          const BorderSide(color: WebStyles.cyanAccent, width: 2),
+              : _esRegistroExistente
+                  // ✅ Bloqueado si el registro ya existe
+                  ? _buildLockedDropdown(
+                      label: 'Agencia',
+                      icon: Icons.store,
+                      value: widget.model.adOrgId?.identifier ?? '',
+                    )
+                  : DropdownButtonFormField<int>(
+                      value: _orgIdSeleccionado,
+                      decoration: InputDecoration(
+                        labelText: 'Agencia *',
+                        prefixIcon: Icon(Icons.store, color: Colors.grey[600]),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                              color: WebStyles.cyanAccent, width: 2),
+                        ),
+                      ),
+                      items: _organizaciones
+                          .map((o) => DropdownMenuItem<int>(
+                                value: o['id'] as int,
+                                child: Text(_getNombre(o)),
+                              ))
+                          .toList(),
+                      validator: (v) =>
+                          v == null ? 'Seleccione una agencia' : null,
+                      onChanged: (v) {
+                        if (v == null) return;
+                        final org =
+                            _organizaciones.firstWhere((o) => o['id'] == v);
+                        setState(() {
+                          _orgIdSeleccionado = v;
+                          widget.model.adOrgId = IdempiereRef(
+                            id: v,
+                            identifier: _getNombre(org),
+                          );
+                        });
+                      },
                     ),
-                  ),
-                  items: _organizaciones
-                      .map((o) => DropdownMenuItem<int>(
-                            value: o['id'] as int,
-                            child: Text(_getNombre(o)),
-                          ))
-                      .toList(),
-                  // ✅ CRÍTICO 2: Validador — no permite avanzar sin agencia
-                  validator: (v) => v == null ? 'Seleccione una agencia' : null,
-                  onChanged: (v) {
-                    if (v == null) return;
-                    final org = _organizaciones.firstWhere((o) => o['id'] == v);
-                    setState(() {
-                      _orgIdSeleccionado = v;
-                      widget.model.adOrgId = IdempiereRef(
-                        id: v,
-                        identifier: _getNombre(org),
-                      );
-                    });
-                  },
-                ),
 
           // ── VENDEDOR/TENANT (AD_Client_ID) ──
           _cargandoTenants
               ? _buildLoadingField('Vendedor')
-              : DropdownButtonFormField<int>(
-                  value: _clientIdSeleccionado,
-                  decoration: InputDecoration(
-                    labelText: 'Vendedor *',
-                    prefixIcon:
-                        Icon(Icons.person_pin, color: Colors.grey[600]),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                          const BorderSide(color: WebStyles.cyanAccent, width: 2),
+              : _esRegistroExistente
+                  // ✅ Bloqueado si el registro ya existe
+                  ? _buildLockedDropdown(
+                      label: 'Vendedor',
+                      icon: Icons.person_pin,
+                      value: widget.model.adClientId?.identifier ?? '',
+                    )
+                  : DropdownButtonFormField<int>(
+                      value: _clientIdSeleccionado,
+                      decoration: InputDecoration(
+                        labelText: 'Vendedor *',
+                        prefixIcon:
+                            Icon(Icons.person_pin, color: Colors.grey[600]),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                              color: WebStyles.cyanAccent, width: 2),
+                        ),
+                      ),
+                      items: _tenants
+                          .map((t) => DropdownMenuItem<int>(
+                                value: t['id'] as int,
+                                child: Text(_getNombre(t)),
+                              ))
+                          .toList(),
+                      validator: (v) =>
+                          v == null ? 'Seleccione un vendedor' : null,
+                      onChanged: (v) {
+                        if (v == null) return;
+                        final tenant = _tenants.firstWhere((t) => t['id'] == v);
+                        setState(() {
+                          _clientIdSeleccionado = v;
+                          widget.model.adClientId = IdempiereRef(
+                            id: v,
+                            identifier: _getNombre(tenant),
+                          );
+                        });
+                      },
                     ),
-                  ),
-                  items: _tenants
-                      .map((t) => DropdownMenuItem<int>(
-                            value: t['id'] as int,
-                            child: Text(_getNombre(t)),
-                          ))
-                      .toList(),
-                  // ✅ CRÍTICO 2: Validador — no permite avanzar sin vendedor
-                  validator: (v) => v == null ? 'Seleccione un vendedor' : null,
-                  onChanged: (v) {
-                    if (v == null) return;
-                    final tenant = _tenants.firstWhere((t) => t['id'] == v);
-                    setState(() {
-                      _clientIdSeleccionado = v;
-                      widget.model.adClientId = IdempiereRef(
-                        id: v,
-                        identifier: _getNombre(tenant),
-                      );
-                    });
-                  },
-                ),
 
           // ── FECHA ── ✅ CRÍTICO 1: Usa _fechaController de initState
           TextFormField(
@@ -388,8 +407,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
             readOnly: true,
             decoration: InputDecoration(
               labelText: 'Fecha *',
-              prefixIcon:
-                  Icon(Icons.calendar_today, color: Colors.grey[600]),
+              prefixIcon: Icon(Icons.calendar_today, color: Colors.grey[600]),
               filled: true,
               fillColor: Colors.grey[50],
               border:
@@ -420,6 +438,14 @@ class _DatosGeneralesState extends State<DatosGenerales> {
           ),
         ]),
 
+        const SizedBox(height: 8),
+        const Divider(thickness: 1),
+        const SizedBox(height: 4),
+
+        const SizedBox(height: 8),
+        const Divider(thickness: 1),
+        const SizedBox(height: 4),
+
         // Fila 2 - RUC y Razón Social
         ResponsiveRow(children: [
           TextFormField(
@@ -439,9 +465,8 @@ class _DatosGeneralesState extends State<DatosGenerales> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(
-                  color: _esRegistroExistente
-                      ? Colors.grey
-                      : WebStyles.cyanAccent,
+                  color:
+                      _esRegistroExistente ? Colors.grey : WebStyles.cyanAccent,
                   width: 2,
                 ),
               ),
@@ -462,8 +487,7 @@ class _DatosGeneralesState extends State<DatosGenerales> {
                       : IconButton(
                           icon: const Icon(Icons.search,
                               color: WebStyles.primaryBlue),
-                          onPressed: () =>
-                              _buscarPorRUC(_taxIdController.text),
+                          onPressed: () => _buscarPorRUC(_taxIdController.text),
                         ),
             ),
             validator: _validarIdentificacionEcuador,
@@ -590,14 +614,38 @@ class _DatosGeneralesState extends State<DatosGenerales> {
     );
   }
 
+  /// Campo de solo lectura para mostrar un dropdown bloqueado (con candado)
+  Widget _buildLockedDropdown({
+    required String label,
+    required IconData icon,
+    required String value,
+  }) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: Colors.grey[500]),
+        filled: true,
+        fillColor: Colors.grey[100],
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        suffixIcon: Tooltip(
+          message: '$label no puede modificarse',
+          child: Icon(Icons.lock, color: Colors.grey[400]),
+        ),
+      ),
+      child: Text(
+        value.isNotEmpty ? value : '-',
+        style: TextStyle(color: Colors.grey[600], fontSize: 16),
+      ),
+    );
+  }
+
   Widget _buildLoadingField(String label) {
     return InputDecorator(
       decoration: InputDecoration(
         labelText: label,
         filled: true,
         fillColor: Colors.grey[100],
-        border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),
       child: Row(
         children: [
@@ -629,12 +677,10 @@ class _DatosGeneralesState extends State<DatosGenerales> {
         prefixIcon: Icon(icon, color: Colors.grey[600]),
         filled: true,
         fillColor: Colors.grey[50],
-        border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide:
-              const BorderSide(color: WebStyles.cyanAccent, width: 2),
+          borderSide: const BorderSide(color: WebStyles.cyanAccent, width: 2),
         ),
       ),
       validator: required
@@ -644,6 +690,8 @@ class _DatosGeneralesState extends State<DatosGenerales> {
       onChanged: onSaved,
     );
   }
+
+ 
 
   String? _validarIdentificacionEcuador(String? v) {
     if (v == null || v.isEmpty) return 'Campo requerido';

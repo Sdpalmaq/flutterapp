@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/kyc_model.dart';
 import '../services/idempiere_service.dart';
@@ -16,15 +17,31 @@ class KycFormScreen extends StatefulWidget {
   final String token;
   final int orgId;
   final int clientId;
-  final int roleId; // ✅ NUEVO
+  final int roleId;
 
   const KycFormScreen({
     super.key,
     required this.token,
     required this.orgId,
     required this.clientId,
-    required this.roleId, // ✅ NUEVO
+    required this.roleId,
   });
+
+  /// Extrae el campo 'sub' del JWT (= username = RUC del cliente)
+  String get taxIdFromToken {
+    try {
+      final parts = token.split('.');
+      if (parts.length < 2) return '';
+      // Base64 padding
+      String payload = parts[1];
+      payload += '=' * ((4 - payload.length % 4) % 4);
+      final decoded = utf8.decode(base64Url.decode(payload));
+      final map = jsonDecode(decoded) as Map<String, dynamic>;
+      return map['sub']?.toString() ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
 
   @override
   State<KycFormScreen> createState() => _KycFormScreenState();
@@ -34,6 +51,8 @@ class _KycFormScreenState extends State<KycFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final IdempiereService _service = IdempiereService();
 
+  bool _buscandoKyc = true;
+
   @override
   void initState() {
     super.initState();
@@ -41,8 +60,111 @@ class _KycFormScreenState extends State<KycFormScreen> {
       token: widget.token,
       orgId: widget.orgId,
       clientId: widget.clientId,
-      roleId: widget.roleId, // ✅ NUEVO
+      roleId: widget.roleId,
     );
+    _buscarKycInicial();
+  }
+
+  /// Decodifica el JWT, extrae el 'sub' (RUC) y busca el KYC automáticamente.
+  /// Si existe → carga el modelo. Si no → deja el formulario vacío con el RUC precargado.
+  Future<void> _buscarKycInicial() async {
+    final taxId = widget.taxIdFromToken;
+    if (taxId.isEmpty) {
+      if (mounted) setState(() => _buscandoKyc = false);
+      return;
+    }
+    try {
+      final data = await _service.buscarKYCporRUC(taxId);
+      if (data != null && mounted) {
+        final kyc = KycJuridicaModel.fromJson(data);
+        setState(() {
+          _model.idMutable = kyc.id;
+          _model.name = kyc.name;
+          _model.taxId = kyc.taxId;
+          _model.adOrgId = kyc.adOrgId;
+          _model.adClientId = kyc.adClientId;
+          _model.cBpartnerId = kyc.cBpartnerId;
+          _model.actividadEconomica = kyc.actividadEconomica;
+          _model.tipoActividad = kyc.tipoActividad;
+          _model.zCorreoCliente = kyc.zCorreoCliente;
+          _model.zObjetoSocial = kyc.zObjetoSocial;
+          _model.zPaginaInternet = kyc.zPaginaInternet;
+          _model.zFecha = kyc.zFecha;
+          _model.registroCivil = kyc.registroCivil;
+          _model.sri = kyc.sri;
+          _model.funcionJudicial = kyc.funcionJudicial;
+          _model.zSuperintendenciaCias = kyc.zSuperintendenciaCias;
+          _model.antecedentespenales = kyc.antecedentespenales;
+          _model.otros = kyc.otros;
+          _model.zProvinciaTrabCliente = kyc.zProvinciaTrabCliente;
+          _model.zCiudadTrabCliente = kyc.zCiudadTrabCliente;
+          _model.zCantonTrabCliente = kyc.zCantonTrabCliente;
+          _model.zCalleTrabCliente = kyc.zCalleTrabCliente;
+          _model.zNumeroTrabCliente = kyc.zNumeroTrabCliente;
+          _model.zInterseccionDomicilio = kyc.zInterseccionDomicilio;
+          _model.zTelefonoTrabCliente = kyc.zTelefonoTrabCliente;
+          _model.zNombrePersonaTransaccion = kyc.zNombrePersonaTransaccion;
+          _model.zDocumentoPersonaTransa = kyc.zDocumentoPersonaTransa;
+          _model.zVinculacionEmpresa = kyc.zVinculacionEmpresa;
+          _model.zBienTransaccion = kyc.zBienTransaccion;
+          _model.zPvpTransaccion = kyc.zPvpTransaccion;
+          _model.zFormaPago = kyc.zFormaPago;
+          _model.zOrigenFondos = kyc.zOrigenFondos;
+          _model.zActivos = kyc.zActivos;
+          _model.zPasivos = kyc.zPasivos;
+          _model.zPatrimonio = kyc.zPatrimonio;
+          _model.zVentas = kyc.zVentas;
+          _model.zCostVentas = kyc.zCostVentas;
+          _model.zGastosDeOperacion = kyc.zGastosDeOperacion;
+          _model.zUtilidadNeta = kyc.zUtilidadNeta;
+          _model.zMargenOperacional = kyc.zMargenOperacional;
+          _model.zActivos2 = kyc.zActivos2;
+          _model.zPasivos2 = kyc.zPasivos2;
+          _model.zPatrimonio2 = kyc.zPatrimonio2;
+          _model.zVentas2 = kyc.zVentas2;
+          _model.zCostVentas2 = kyc.zCostVentas2;
+          _model.zGastosDeOperacion2 = kyc.zGastosDeOperacion2;
+          _model.zUtilidadNeta2 = kyc.zUtilidadNeta2;
+          _model.zMargenOperacional2 = kyc.zMargenOperacional2;
+          _model.zActivos3 = kyc.zActivos3;
+          _model.zPasivos3 = kyc.zPasivos3;
+          _model.zPatrimonio3 = kyc.zPatrimonio3;
+          _model.zVentas3 = kyc.zVentas3;
+          _model.zCostVentas3 = kyc.zCostVentas3;
+          _model.zGastosDeOperacion3 = kyc.zGastosDeOperacion3;
+          _model.zUtilidadNeta3 = kyc.zUtilidadNeta3;
+          _model.zMargenOperacional3 = kyc.zMargenOperacional3;
+          _model.zNombreRespresentanteLegal = kyc.zNombreRespresentanteLegal;
+          _model.zDocumentoRepLegal = kyc.zDocumentoRepLegal;
+          _model.zGeneroRepLegal = kyc.zGeneroRepLegal;
+          _model.zCorreoRepLegal = kyc.zCorreoRepLegal;
+          _model.zPaisRepLega = kyc.zPaisRepLega;
+          _model.zProvinciaRepLegal = kyc.zProvinciaRepLegal;
+          _model.zCiudadRepLegal = kyc.zCiudadRepLegal;
+          _model.zCantonRepLegal = kyc.zCantonRepLegal;
+          _model.zCalleRepLegal = kyc.zCalleRepLegal;
+          _model.zNumeroRepLegal = kyc.zNumeroRepLegal;
+          _model.zInterseccionRepLegal = kyc.zInterseccionRepLegal;
+          _model.zTelefonoRepLegal = kyc.zTelefonoRepLegal;
+          _model.zNombreConyugue = kyc.zNombreConyugue;
+          _model.zDocConyugue = kyc.zDocConyugue;
+          _model.zObservacionesKyc = kyc.zObservacionesKyc;
+          _model.isPpe = kyc.isPpe;
+          _buscandoKyc = false;
+        });
+      } else {
+        // No existe KYC — formulario vacío, precargar el RUC del JWT
+        if (mounted)
+          setState(() {
+            _model.taxId = taxId;
+            _buscandoKyc = false;
+          });
+      }
+    } on TokenExpiradoException {
+      await _manejarTokenExpirado();
+    } catch (e) {
+      if (mounted) setState(() => _buscandoKyc = false);
+    }
   }
 
   final KycJuridicaModel _model = KycJuridicaModel();
@@ -73,7 +195,8 @@ class _KycFormScreenState extends State<KycFormScreen> {
     // Mostrar aviso y redirigir al login
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('⏱️ Tu sesión expiró. Por favor inicia sesión nuevamente.'),
+        content:
+            Text('⏱️ Tu sesión expiró. Por favor inicia sesión nuevamente.'),
         backgroundColor: Colors.orange,
         duration: Duration(seconds: 3),
       ),
@@ -98,7 +221,8 @@ class _KycFormScreenState extends State<KycFormScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('⚠️ Corrija los errores de esta sección antes de avanzar'),
+          content:
+              Text('⚠️ Corrija los errores de esta sección antes de avanzar'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 2),
         ),
@@ -124,7 +248,8 @@ class _KycFormScreenState extends State<KycFormScreen> {
       final registroId = _model.idMutable ?? _model.id;
 
       if (registroId != null) {
-        final ok = await _service.actualizarKYC(registroId, _model.toJsonUpdate());
+        final ok =
+            await _service.actualizarKYC(registroId, _model.toJsonUpdate());
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -274,10 +399,38 @@ class _KycFormScreenState extends State<KycFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Spinner mientras se busca el KYC por RUC al iniciar
+    if (_buscandoKyc) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [WebStyles.primaryBlue, WebStyles.secondaryBlue],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: WebStyles.cyanAccent),
+                SizedBox(height: 20),
+                Text(
+                  'Cargando su información...',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
-        final isTablet = constraints.maxWidth >= 600 && constraints.maxWidth < 900;
+        final isTablet =
+            constraints.maxWidth >= 600 && constraints.maxWidth < 900;
         final isDesktop = constraints.maxWidth >= 900;
 
         return Scaffold(
@@ -306,7 +459,8 @@ class _KycFormScreenState extends State<KycFormScreen> {
                             icon: const Icon(Icons.menu, color: Colors.white),
                             tooltip: 'Ver secciones',
                           ),
-                        const Icon(Icons.assignment, color: Colors.white, size: 28),
+                        const Icon(Icons.assignment,
+                            color: Colors.white, size: 28),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -314,7 +468,11 @@ class _KycFormScreenState extends State<KycFormScreen> {
                                 ? 'KYC - P. Jurídica'
                                 : 'Conozca a su Cliente - Persona Jurídica',
                             style: WebStyles.titleStyle.copyWith(
-                              fontSize: isMobile ? 16 : isTablet ? 20 : 26,
+                              fontSize: isMobile
+                                  ? 16
+                                  : isTablet
+                                      ? 20
+                                      : 26,
                             ),
                           ),
                         ),
@@ -464,9 +622,8 @@ class _KycFormScreenState extends State<KycFormScreen> {
                               child: Text(
                                 _secciones[index]['titulo'],
                                 style: TextStyle(
-                                  color: esActual
-                                      ? Colors.white
-                                      : Colors.black87,
+                                  color:
+                                      esActual ? Colors.white : Colors.black87,
                                   fontWeight: esActual
                                       ? FontWeight.bold
                                       : FontWeight.normal,
@@ -537,8 +694,8 @@ class _KycFormScreenState extends State<KycFormScreen> {
                 height: 40,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   itemCount: _secciones.length,
                   itemBuilder: (context, index) {
                     final esActual = _seccionActual == index;
@@ -549,17 +706,15 @@ class _KycFormScreenState extends State<KycFormScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          color: esActual
-                              ? WebStyles.cyanAccent
-                              : Colors.white24,
+                          color:
+                              esActual ? WebStyles.cyanAccent : Colors.white24,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           '${index + 1}',
                           style: TextStyle(
-                            color: esActual
-                                ? WebStyles.primaryBlue
-                                : Colors.white,
+                            color:
+                                esActual ? WebStyles.primaryBlue : Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -668,8 +823,7 @@ class _KycFormScreenState extends State<KycFormScreen> {
                     children: [
                       if (_seccionActual > 0)
                         ElevatedButton.icon(
-                          onPressed: () =>
-                              setState(() => _seccionActual--),
+                          onPressed: () => setState(() => _seccionActual--),
                           icon: const Icon(Icons.arrow_back, size: 18),
                           label: Text(isMobile ? '' : 'Anterior'),
                           style: ElevatedButton.styleFrom(
@@ -723,8 +877,7 @@ class _KycFormScreenState extends State<KycFormScreen> {
                           const SizedBox(width: 8),
                           if (_seccionActual < _secciones.length - 1)
                             ElevatedButton.icon(
-                              onPressed: () =>
-                                  _irASeccion(_seccionActual + 1),
+                              onPressed: () => _irASeccion(_seccionActual + 1),
                               icon: const Icon(Icons.arrow_forward, size: 18),
                               label: Text(isMobile ? '' : 'Siguiente'),
                               style: ElevatedButton.styleFrom(
