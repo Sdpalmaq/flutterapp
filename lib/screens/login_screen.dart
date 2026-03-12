@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../config/api.config.dart';
-import '../screens/kyc_form_screen.dart';
+import 'kyc_form_screen.dart';
+import 'kyc_router_screen.dart'; // Importamos el router que acabamos de crear
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -265,19 +266,23 @@ class _LoginScreenState extends State<LoginScreen>
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => KycFormScreen(
+              // ✅ AHORA VAMOS AL ROUTER
+              builder: (_) => KycRouterScreen(
                 token: tokenFinal,
                 orgId: org['id'] as int,
+                roleId: _rolSeleccionado!['id']
+                    as int, // ✅ pasamos roleId al router
                 clientId: _clienteSeleccionado!['id'] as int,
-                roleId: _rolSeleccionado!['id'] as int, // ✅ NUEVO
+                usuarioLogin: _userController.text
+                    .trim(), // Le pasamos la cédula/RUC del login
               ),
             ),
           );
+        } else {
+          final data = jsonDecode(response.body);
+          setState(() =>
+              _error = data['detail'] ?? 'Error al establecer el contexto');
         }
-      } else {
-        final data = jsonDecode(response.body);
-        setState(
-            () => _error = data['detail'] ?? 'Error al establecer el contexto');
       }
     } catch (e) {
       setState(() => _error = 'Error de conexión');

@@ -11,7 +11,7 @@ import '../widgets/situacion_financiera.dart';
 import '../widgets/representante_legal.dart';
 import '../widgets/tablas_hijas.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../screens/login_screen.dart';
+import 'login_screen.dart';
 
 class KycFormScreen extends StatefulWidget {
   final String token;
