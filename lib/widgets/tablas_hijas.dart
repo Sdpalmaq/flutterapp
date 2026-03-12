@@ -207,7 +207,8 @@ class _TablasHijasState extends State<TablasHijas>
             SizedBox(width: 8),
             Text(
               'Todas las secciones requeridas están completas.',
-              style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
+              style:
+                  TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -223,12 +224,14 @@ class _TablasHijasState extends State<TablasHijas>
       ),
       child: Row(
         children: [
-          Icon(Icons.warning_amber_rounded, color: Colors.orange[700], size: 18),
+          Icon(Icons.warning_amber_rounded,
+              color: Colors.orange[700], size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Faltan registros obligatorios: ${faltantes.join(', ')}.',
-              style: TextStyle(color: Colors.orange[800], fontWeight: FontWeight.w500),
+              style: TextStyle(
+                  color: Colors.orange[800], fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -268,7 +271,8 @@ class _TablasHijasState extends State<TablasHijas>
                 onPressed: () => _mostrarDialogoAccionista(),
                 icon: const Icon(Icons.add),
                 label: const Text('Agregar Accionista'),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
+                style:
+                    ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
               ),
             ],
           ),
@@ -326,14 +330,16 @@ class _TablasHijasState extends State<TablasHijas>
                 onPressed: () => _mostrarDialogoCliente(),
                 icon: const Icon(Icons.add),
                 label: const Text('Agregar Cliente'),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
+                style:
+                    ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
               ),
             ],
           ),
         ),
         Expanded(
           child: _clientes.isEmpty
-              ? _buildVacioObligatorio('Debe registrar al menos un cliente principal')
+              ? _buildVacioObligatorio(
+                  'Debe registrar al menos un cliente principal')
               : ListView.builder(
                   itemCount: _clientes.length,
                   itemBuilder: (context, index) {
@@ -343,7 +349,8 @@ class _TablasHijasState extends State<TablasHijas>
                         title: Text(c.zNombre ?? ''),
                         subtitle: Text(
                           'Teléfono: ${c.zTelefono ?? '-'} | '
-                          'Ventas: ${c.zPorcentajeVentas ?? 0}%',
+                          'Ventas: ${c.zPorcentajeVentas ?? 0}% | '
+                          'País: ${c.zPaisIdentifier ?? '-'}',
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -424,7 +431,8 @@ class _TablasHijasState extends State<TablasHijas>
                 Expanded(
                   child: Text(
                     'Debe registrar al menos un PEP porque marcó que existe una Persona Políticamente Expuesta.',
-                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                        color: Colors.red, fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
@@ -442,7 +450,8 @@ class _TablasHijasState extends State<TablasHijas>
         const SizedBox(height: 8),
         Expanded(
           child: _peps.isEmpty
-              ? _buildVacioObligatorio('Debe registrar al menos un registro PEP')
+              ? _buildVacioObligatorio(
+                  'Debe registrar al menos un registro PEP')
               : ListView.builder(
                   itemCount: _peps.length,
                   itemBuilder: (context, index) {
@@ -492,7 +501,8 @@ class _TablasHijasState extends State<TablasHijas>
         const SizedBox(height: 8),
         Expanded(
           child: _referencias.isEmpty
-              ? _buildVacioObligatorio('Debe registrar al menos una referencia bancaria')
+              ? _buildVacioObligatorio(
+                  'Debe registrar al menos una referencia bancaria')
               : ListView.builder(
                   itemCount: _referencias.length,
                   itemBuilder: (context, index) {
@@ -538,7 +548,8 @@ class _TablasHijasState extends State<TablasHijas>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.warning_amber_rounded, color: Colors.orange[400], size: 40),
+          Icon(Icons.warning_amber_rounded,
+              color: Colors.orange[400], size: 40),
           const SizedBox(height: 8),
           Text(
             mensaje,
@@ -717,8 +728,7 @@ class _TablasHijasState extends State<TablasHijas>
                     if (val == null || val <= 0) {
                       return 'Ingrese un porcentaje mayor a 0';
                     }
-                    final sumaExistente =
-                        _sumaClientes(excludeId: cliente?.id);
+                    final sumaExistente = _sumaClientes(excludeId: cliente?.id);
                     if (sumaExistente + val > 100) {
                       return 'Supera el 100% (disponible: ${(100 - sumaExistente).toStringAsFixed(1)}%)';
                     }
@@ -726,22 +736,12 @@ class _TablasHijasState extends State<TablasHijas>
                   },
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<int>(
-                  value: model.zPaisId,
-                  decoration: const InputDecoration(
-                    labelText: 'País',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: _paises
-                      .map((p) => DropdownMenuItem<int>(
-                            value: p['id'] as int,
-                            child: Text(p['Name'] ?? ''),
-                          ))
-                      .toList(),
-                  onChanged: (v) {
-                    model.zPaisId = v;
-                    model.zPaisIdentifier =
-                        _paises.firstWhere((p) => p['id'] == v)['Name'];
+                _BuscadorPais(
+                  paises: _paises,
+                  paisIdInicial: model.zPaisId,
+                  onSeleccionado: (id, nombre) {
+                    model.zPaisId = id;
+                    model.zPaisIdentifier = nombre;
                   },
                 ),
                 const SizedBox(height: 12),
@@ -1009,5 +1009,175 @@ class _TablasHijasState extends State<TablasHijas>
           ),
         ) ??
         false;
+  }
+}
+
+// ── Buscador de países reutilizable (StatefulWidget) ──
+class _BuscadorPais extends StatefulWidget {
+  final List<Map<String, dynamic>> paises;
+  final int? paisIdInicial;
+  final void Function(int? id, String? nombre) onSeleccionado;
+
+  const _BuscadorPais({
+    required this.paises,
+    required this.onSeleccionado,
+    this.paisIdInicial,
+  });
+
+  @override
+  State<_BuscadorPais> createState() => _BuscadorPaisState();
+}
+
+class _BuscadorPaisState extends State<_BuscadorPais> {
+  final TextEditingController _ctrl = TextEditingController();
+  List<Map<String, dynamic>> _filtrados = [];
+  int? _paisIdSeleccionado;
+  bool _mostrarLista = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _filtrados = widget.paises;
+    _paisIdSeleccionado = widget.paisIdInicial;
+    if (_paisIdSeleccionado != null) {
+      final match =
+          widget.paises.where((p) => p['id'] == _paisIdSeleccionado).toList();
+      if (match.isNotEmpty) _ctrl.text = match.first['Name'] ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _filtrar(String q) {
+    setState(() {
+      _filtrados = q.isEmpty
+          ? widget.paises
+          : widget.paises
+              .where((p) =>
+                  (p['Name'] ?? '').toLowerCase().contains(q.toLowerCase()))
+              .toList();
+      _mostrarLista = true;
+    });
+  }
+
+  void _seleccionar(Map<String, dynamic> pais) {
+    setState(() {
+      _paisIdSeleccionado = pais['id'] as int;
+      _ctrl.text = pais['Name'] ?? '';
+      _mostrarLista = false;
+    });
+    widget.onSeleccionado(_paisIdSeleccionado, pais['Name']);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _ctrl,
+          decoration: InputDecoration(
+            labelText: 'País',
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.public),
+            hintText: 'Escribe para buscar...',
+            suffixIcon: _ctrl.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () => setState(() {
+                      _ctrl.clear();
+                      _paisIdSeleccionado = null;
+                      _filtrados = widget.paises;
+                      _mostrarLista = false;
+                      widget.onSeleccionado(null, null);
+                    }),
+                  )
+                : const Icon(Icons.search),
+          ),
+          onChanged: _filtrar,
+          onTap: () => setState(() {
+            _mostrarLista = true;
+            if (_ctrl.text.isEmpty) _filtrados = widget.paises;
+          }),
+        ),
+        if (_mostrarLista && _filtrados.isNotEmpty)
+          Container(
+            constraints: const BoxConstraints(maxHeight: 180),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(8),
+                bottomRight: Radius.circular(8),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _filtrados.length,
+              itemBuilder: (_, i) {
+                final p = _filtrados[i];
+                final sel = p['id'] == _paisIdSeleccionado;
+                return InkWell(
+                  onTap: () => _seleccionar(p),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    color: sel ? Colors.blue.shade50 : Colors.transparent,
+                    child: Row(
+                      children: [
+                        Icon(
+                          sel ? Icons.check_circle : Icons.circle_outlined,
+                          size: 16,
+                          color:
+                              sel ? Colors.blue.shade700 : Colors.grey.shade400,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          p['Name'] ?? '',
+                          style: TextStyle(
+                            color: sel ? Colors.blue.shade800 : Colors.black87,
+                            fontWeight:
+                                sel ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        if (_mostrarLista && _filtrados.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(8),
+                bottomRight: Radius.circular(8),
+              ),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.search_off, color: Colors.grey, size: 18),
+                SizedBox(width: 8),
+                Text('No se encontraron países',
+                    style: TextStyle(color: Colors.grey)),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 }
